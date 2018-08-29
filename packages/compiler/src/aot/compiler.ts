@@ -6,22 +6,30 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {CompileDirectiveMetadata, CompileDirectiveSummary, CompileIdentifierMetadata, CompileNgModuleMetadata, CompileNgModuleSummary, CompilePipeMetadata, CompilePipeSummary, CompileProviderMetadata, CompileStylesheetMetadata, CompileSummaryKind, CompileTypeMetadata, CompileTypeSummary, componentFactoryName, flatten, identifierName, templateSourceUrl, tokenReference} from '../compile_metadata';
+import {CompileDirectiveMetadata, CompileIdentifierMetadata, CompileInjectableMetadata, CompileNgModuleMetadata, CompilePipeMetadata, CompilePipeSummary, CompileProviderMetadata, CompileShallowModuleMetadata, CompileStylesheetMetadata, CompileTypeMetadata, CompileTypeSummary, componentFactoryName, flatten, identifierName, templateSourceUrl} from '../compile_metadata';
 import {CompilerConfig} from '../config';
 import {ConstantPool} from '../constant_pool';
 import {ViewEncapsulation} from '../core';
 import {MessageBundle} from '../i18n/message_bundle';
 import {Identifiers, createTokenForExternalReference} from '../identifiers';
+import {InjectableCompiler} from '../injectable_compiler';
 import {CompileMetadataResolver} from '../metadata_resolver';
+import * as html from '../ml_parser/ast';
 import {HtmlParser} from '../ml_parser/html_parser';
-import {InterpolationConfig} from '../ml_parser/interpolation_config';
+import {removeWhitespaces} from '../ml_parser/html_whitespaces';
+import {DEFAULT_INTERPOLATION_CONFIG, InterpolationConfig} from '../ml_parser/interpolation_config';
 import {NgModuleCompiler} from '../ng_module_compiler';
 import {OutputEmitter} from '../output/abstract_emitter';
 import * as o from '../output/output_ast';
 import {ParseError} from '../parse_util';
-import {compileComponent as compileIvyComponent, compileDirective as compileIvyDirective} from '../render3/r3_view_compiler';
+import {compileNgModuleFromRender2 as compileR3Module} from '../render3/r3_module_compiler';
+import {compilePipeFromRender2 as compileR3Pipe} from '../render3/r3_pipe_compiler';
+import {htmlAstToRender3Ast} from '../render3/r3_template_transform';
+import {compileComponentFromRender2 as compileR3Component, compileDirectiveFromRender2 as compileR3Directive} from '../render3/view/compiler';
+import {DomElementSchemaRegistry} from '../schema/dom_element_schema_registry';
 import {CompiledStylesheet, StyleCompiler} from '../style_compiler';
 import {SummaryResolver} from '../summary_resolver';
+import {BindingParser} from '../template_parser/binding_parser';
 import {TemplateAst} from '../template_parser/template_ast';
 import {TemplateParser} from '../template_parser/template_parser';
 import {OutputContext, ValueVisitor, error, syntaxError, visitValue} from '../util';
@@ -35,28 +43,25 @@ import {LazyRoute, listLazyRoutes, parseLazyRoute} from './lazy_routes';
 import {PartialModule} from './partial_module';
 import {StaticReflector} from './static_reflector';
 import {StaticSymbol} from './static_symbol';
-import {ResolvedStaticSymbol, StaticSymbolResolver} from './static_symbol_resolver';
+import {StaticSymbolResolver} from './static_symbol_resolver';
 import {createForJitStub, serializeSummaries} from './summary_serializer';
-import {ngfactoryFilePath, normalizeGenFileSuffix, splitTypescriptSuffix, summaryFileName, summaryForJitFileName, summaryForJitName} from './util';
+import {ngfactoryFilePath, normalizeGenFileSuffix, splitTypescriptSuffix, summaryFileName, summaryForJitFileName} from './util';
 
-enum StubEmitFlags {
-  Basic = 1 << 0,
-  TypeCheck = 1 << 1,
-  All = TypeCheck | Basic
-}
+const enum StubEmitFlags { Basic = 1 << 0, TypeCheck = 1 << 1, All = TypeCheck | Basic }
 
 export class AotCompiler {
   private _templateAstCache =
       new Map<StaticSymbol, {template: TemplateAst[], pipes: CompilePipeSummary[]}>();
   private _analyzedFiles = new Map<string, NgAnalyzedFile>();
+  private _analyzedFilesForInjectables = new Map<string, NgAnalyzedFileWithInjectables>();
 
   constructor(
       private _config: CompilerConfig, private _options: AotCompilerOptions,
-      private _host: AotCompilerHost, private _reflector: StaticReflector,
+      private _host: AotCompilerHost, readonly reflector: StaticReflector,
       private _metadataResolver: CompileMetadataResolver, private _templateParser: TemplateParser,
       private _styleCompiler: StyleCompiler, private _viewCompiler: ViewCompiler,
       private _typeCheckCompiler: TypeCheckCompiler, private _ngModuleCompiler: NgModuleCompiler,
-      private _outputEmitter: OutputEmitter,
+      private _injectableCompiler: InjectableCompiler, private _outputEmitter: OutputEmitter,
       private _summaryResolver: SummaryResolver<StaticSymbol>,
       private _symbolResolver: StaticSymbolResolver) {}
 
@@ -87,6 +92,16 @@ export class AotCompiler {
       analyzedFile =
           analyzeFile(this._host, this._symbolResolver, this._metadataResolver, fileName);
       this._analyzedFiles.set(fileName, analyzedFile);
+    }
+    return analyzedFile;
+  }
+
+  private _analyzeFileForInjectables(fileName: string): NgAnalyzedFileWithInjectables {
+    let analyzedFile = this._analyzedFilesForInjectables.get(fileName);
+    if (!analyzedFile) {
+      analyzedFile = analyzeFileForInjectables(
+          this._host, this._symbolResolver, this._metadataResolver, fileName);
+      this._analyzedFilesForInjectables.set(fileName, analyzedFile);
     }
     return analyzedFile;
   }
@@ -156,7 +171,7 @@ export class AotCompiler {
       _createEmptyStub(outputCtx);
     }
     // Note: for the stubs, we don't need a property srcFileUrl,
-    // as lateron in emitAllImpls we will create the proper GeneratedFiles with the
+    // as later on in emitAllImpls we will create the proper GeneratedFiles with the
     // correct srcFileUrl.
     // This is good as e.g. for .ngstyle.ts files we can't derive
     // the url of components based on the genFileUrl.
@@ -174,7 +189,8 @@ export class AotCompiler {
         null;
   }
 
-  loadFilesAsync(fileNames: string[]): Promise<NgAnalyzedModules> {
+  loadFilesAsync(fileNames: string[], tsFiles: string[]): Promise<
+      {analyzedModules: NgAnalyzedModules, analyzedInjectables: NgAnalyzedFileWithInjectables[]}> {
     const files = fileNames.map(fileName => this._analyzeFile(fileName));
     const loadingPromises: Promise<NgAnalyzedModules>[] = [];
     files.forEach(
@@ -182,16 +198,25 @@ export class AotCompiler {
             ngModule =>
                 loadingPromises.push(this._metadataResolver.loadNgModuleDirectiveAndPipeMetadata(
                     ngModule.type.reference, false))));
-    return Promise.all(loadingPromises).then(_ => mergeAndValidateNgFiles(files));
+    const analyzedInjectables = tsFiles.map(tsFile => this._analyzeFileForInjectables(tsFile));
+    return Promise.all(loadingPromises).then(_ => ({
+                                               analyzedModules: mergeAndValidateNgFiles(files),
+                                               analyzedInjectables: analyzedInjectables,
+                                             }));
   }
 
-  loadFilesSync(fileNames: string[]): NgAnalyzedModules {
+  loadFilesSync(fileNames: string[], tsFiles: string[]):
+      {analyzedModules: NgAnalyzedModules, analyzedInjectables: NgAnalyzedFileWithInjectables[]} {
     const files = fileNames.map(fileName => this._analyzeFile(fileName));
     files.forEach(
         file => file.ngModules.forEach(
             ngModule => this._metadataResolver.loadNgModuleDirectiveAndPipeMetadata(
                 ngModule.type.reference, true)));
-    return mergeAndValidateNgFiles(files);
+    const analyzedInjectables = tsFiles.map(tsFile => this._analyzeFileForInjectables(tsFile));
+    return {
+      analyzedModules: mergeAndValidateNgFiles(files),
+      analyzedInjectables: analyzedInjectables,
+    };
   }
 
   private _createNgFactoryStub(
@@ -199,7 +224,7 @@ export class AotCompiler {
     let componentId = 0;
     file.ngModules.forEach((ngModuleMeta, ngModuleIndex) => {
       // Note: the code below needs to executed for StubEmitFlags.Basic and StubEmitFlags.TypeCheck,
-      // so we don't change the .ngfactory file too much when adding the typecheck block.
+      // so we don't change the .ngfactory file too much when adding the type-check block.
 
       // create exports that user code can reference
       this._ngModuleCompiler.createStub(outputCtx, ngModuleMeta.type.reference);
@@ -232,7 +257,7 @@ export class AotCompiler {
       });
 
       if (emitFlags & StubEmitFlags.TypeCheck) {
-        // add the typecheck block for all components of the NgModule
+        // add the type-check block for all components of the NgModule
         ngModuleMeta.declaredDirectives.forEach((dirId) => {
           const compMeta = this._metadataResolver.getDirectiveMetadata(dirId.reference);
           if (!compMeta.isComponent) {
@@ -258,7 +283,7 @@ export class AotCompiler {
   private _externalIdentifierReferences(references: o.ExternalReference[]): StaticSymbol[] {
     const result: StaticSymbol[] = [];
     for (let reference of references) {
-      const token = createTokenForExternalReference(this._reflector, reference);
+      const token = createTokenForExternalReference(this.reflector, reference);
       if (token.identifier) {
         result.push(token.identifier.reference);
       }
@@ -293,10 +318,12 @@ export class AotCompiler {
       });
       compMetas.forEach(compMeta => {
         const html = compMeta.template !.template !;
+        // Template URL points to either an HTML or TS file depending on whether
+        // the file is used with `templateUrl:` or `template:`, respectively.
+        const templateUrl = compMeta.template !.templateUrl !;
         const interpolationConfig =
             InterpolationConfig.fromArray(compMeta.template !.interpolation);
-        errors.push(
-            ...messageBundle.updateFromTemplate(html, file.fileName, interpolationConfig) !);
+        errors.push(...messageBundle.updateFromTemplate(html, templateUrl, interpolationConfig) !);
       });
     });
 
@@ -307,23 +334,49 @@ export class AotCompiler {
     return messageBundle;
   }
 
-  emitAllPartialModules({ngModuleByPipeOrDirective, files}: NgAnalyzedModules): PartialModule[] {
-    // Using reduce like this is a select many pattern (where map is a select pattern)
-    return files.reduce<PartialModule[]>((r, file) => {
-      r.push(...this._emitPartialModule(
-          file.fileName, ngModuleByPipeOrDirective, file.directives, file.pipes, file.ngModules,
-          file.injectables));
-      return r;
-    }, []);
+  emitAllPartialModules(
+      {ngModuleByPipeOrDirective, files}: NgAnalyzedModules,
+      r3Files: NgAnalyzedFileWithInjectables[]): PartialModule[] {
+    const contextMap = new Map<string, OutputContext>();
+
+    const getContext = (fileName: string): OutputContext => {
+      if (!contextMap.has(fileName)) {
+        contextMap.set(fileName, this._createOutputContext(fileName));
+      }
+      return contextMap.get(fileName) !;
+    };
+
+    files.forEach(
+        file => this._compilePartialModule(
+            file.fileName, ngModuleByPipeOrDirective, file.directives, file.pipes, file.ngModules,
+            file.injectables, getContext(file.fileName)));
+    r3Files.forEach(
+        file => this._compileShallowModules(
+            file.fileName, file.shallowModules, getContext(file.fileName)));
+
+    return Array.from(contextMap.values())
+        .map(context => ({
+               fileName: context.genFilePath,
+               statements: [...context.constantPool.statements, ...context.statements],
+             }));
   }
 
-  private _emitPartialModule(
+  private _compileShallowModules(
+      fileName: string, shallowModules: CompileShallowModuleMetadata[],
+      context: OutputContext): void {
+    shallowModules.forEach(module => compileR3Module(context, module, this._injectableCompiler));
+  }
+
+  private _compilePartialModule(
       fileName: string, ngModuleByPipeOrDirective: Map<StaticSymbol, CompileNgModuleMetadata>,
       directives: StaticSymbol[], pipes: StaticSymbol[], ngModules: CompileNgModuleMetadata[],
-      injectables: StaticSymbol[]): PartialModule[] {
-    const classes: o.ClassStmt[] = [];
+      injectables: CompileInjectableMetadata[], context: OutputContext): void {
+    const errors: ParseError[] = [];
 
-    const context = this._createOutputContext(fileName);
+    const schemaRegistry = new DomElementSchemaRegistry();
+    const hostBindingParser = new BindingParser(
+        this._templateParser.expressionParser, DEFAULT_INTERPOLATION_CONFIG, schemaRegistry, [],
+        errors);
 
     // Process all components and directives
     directives.forEach(directiveType => {
@@ -334,15 +387,67 @@ export class AotCompiler {
             error(
                 `Cannot determine the module for component '${identifierName(directiveMetadata.type)}'`);
 
-        const {template: parsedTemplate} =
-            this._parseTemplate(directiveMetadata, module, module.transitiveModule.directives);
-        compileIvyComponent(context, directiveMetadata, parsedTemplate, this._reflector);
+        let htmlAst = directiveMetadata.template !.htmlAst !;
+        const preserveWhitespaces = directiveMetadata !.template !.preserveWhitespaces;
+
+        if (!preserveWhitespaces) {
+          htmlAst = removeWhitespaces(htmlAst);
+        }
+        const render3Ast = htmlAstToRender3Ast(htmlAst.rootNodes, hostBindingParser);
+
+        // Map of StaticType by directive selectors
+        const directiveTypeBySel = new Map<string, any>();
+
+        const directives = module.transitiveModule.directives.map(
+            dir => this._metadataResolver.getDirectiveSummary(dir.reference));
+
+        directives.forEach(directive => {
+          if (directive.selector) {
+            directiveTypeBySel.set(directive.selector, directive.type.reference);
+          }
+        });
+
+        // Map of StaticType by pipe names
+        const pipeTypeByName = new Map<string, any>();
+
+        const pipes = module.transitiveModule.pipes.map(
+            pipe => this._metadataResolver.getPipeSummary(pipe.reference));
+
+        pipes.forEach(pipe => { pipeTypeByName.set(pipe.name, pipe.type.reference); });
+
+        compileR3Component(
+            context, directiveMetadata, render3Ast, this.reflector, hostBindingParser,
+            directiveTypeBySel, pipeTypeByName);
       } else {
-        compileIvyDirective(context, directiveMetadata, this._reflector);
+        compileR3Directive(context, directiveMetadata, this.reflector, hostBindingParser);
       }
     });
 
-    if (context.statements) {
+    pipes.forEach(pipeType => {
+      const pipeMetadata = this._metadataResolver.getPipeMetadata(pipeType);
+      if (pipeMetadata) {
+        compileR3Pipe(context, pipeMetadata, this.reflector);
+      }
+    });
+
+    injectables.forEach(injectable => this._injectableCompiler.compile(injectable, context));
+  }
+
+  emitAllPartialModules2(files: NgAnalyzedFileWithInjectables[]): PartialModule[] {
+    // Using reduce like this is a select many pattern (where map is a select pattern)
+    return files.reduce<PartialModule[]>((r, file) => {
+      r.push(...this._emitPartialModule2(file.fileName, file.injectables));
+      return r;
+    }, []);
+  }
+
+  private _emitPartialModule2(fileName: string, injectables: CompileInjectableMetadata[]):
+      PartialModule[] {
+    const context = this._createOutputContext(fileName);
+
+    injectables.forEach(injectable => this._injectableCompiler.compile(injectable, context));
+
+    if (context.statements && context.statements.length > 0) {
       return [{fileName, statements: [...context.constantPool.statements, ...context.statements]}];
     }
     return [];
@@ -360,7 +465,7 @@ export class AotCompiler {
   private _compileImplFile(
       srcFileUrl: string, ngModuleByPipeOrDirective: Map<StaticSymbol, CompileNgModuleMetadata>,
       directives: StaticSymbol[], pipes: StaticSymbol[], ngModules: CompileNgModuleMetadata[],
-      injectables: StaticSymbol[]): GeneratedFile[] {
+      injectables: CompileInjectableMetadata[]): GeneratedFile[] {
     const fileSuffix = normalizeGenFileSuffix(splitTypescriptSuffix(srcFileUrl, true)[1]);
     const generatedFiles: GeneratedFile[] = [];
 
@@ -414,7 +519,7 @@ export class AotCompiler {
 
   private _createSummary(
       srcFileName: string, directives: StaticSymbol[], pipes: StaticSymbol[],
-      ngModules: CompileNgModuleMetadata[], injectables: StaticSymbol[],
+      ngModules: CompileNgModuleMetadata[], injectables: CompileInjectableMetadata[],
       ngFactoryCtx: OutputContext): GeneratedFile[] {
     const symbolSummaries = this._symbolResolver.getSymbolsOf(srcFileName)
                                 .map(symbol => this._symbolResolver.resolveSymbol(symbol));
@@ -437,10 +542,11 @@ export class AotCompiler {
                          summary: this._metadataResolver.getPipeSummary(ref) !,
                          metadata: this._metadataResolver.getPipeMetadata(ref) !
                        })),
-          ...injectables.map(ref => ({
-                               summary: this._metadataResolver.getInjectableSummary(ref) !,
-                               metadata: this._metadataResolver.getInjectableSummary(ref) !.type
-                             }))
+          ...injectables.map(
+              ref => ({
+                summary: this._metadataResolver.getInjectableSummary(ref.symbol) !,
+                metadata: this._metadataResolver.getInjectableSummary(ref.symbol) !.type
+              }))
         ];
     const forJitOutputCtx = this._options.enableSummariesForJit ?
         this._createOutputContext(summaryForJitFileName(srcFileName, true)) :
@@ -468,14 +574,14 @@ export class AotCompiler {
     if (this._options.locale) {
       const normalizedLocale = this._options.locale.replace(/_/g, '-');
       providers.push({
-        token: createTokenForExternalReference(this._reflector, Identifiers.LOCALE_ID),
+        token: createTokenForExternalReference(this.reflector, Identifiers.LOCALE_ID),
         useValue: normalizedLocale,
       });
     }
 
     if (this._options.i18nFormat) {
       providers.push({
-        token: createTokenForExternalReference(this._reflector, Identifiers.TRANSLATIONS_FORMAT),
+        token: createTokenForExternalReference(this.reflector, Identifiers.TRANSLATIONS_FORMAT),
         useValue: this._options.i18nFormat
       });
     }
@@ -619,12 +725,12 @@ export class AotCompiler {
   listLazyRoutes(entryRoute?: string, analyzedModules?: NgAnalyzedModules): LazyRoute[] {
     const self = this;
     if (entryRoute) {
-      const symbol = parseLazyRoute(entryRoute, this._reflector).referencedModule;
+      const symbol = parseLazyRoute(entryRoute, this.reflector).referencedModule;
       return visitLazyRoute(symbol);
     } else if (analyzedModules) {
       const allLazyRoutes: LazyRoute[] = [];
       for (const ngModule of analyzedModules.ngModules) {
-        const lazyRoutes = listLazyRoutes(ngModule, this._reflector);
+        const lazyRoutes = listLazyRoutes(ngModule, this.reflector);
         for (const lazyRoute of lazyRoutes) {
           allLazyRoutes.push(lazyRoute);
         }
@@ -644,7 +750,7 @@ export class AotCompiler {
       }
       seenRoutes.add(symbol);
       const lazyRoutes = listLazyRoutes(
-          self._metadataResolver.getNgModuleMetadata(symbol, true) !, self._reflector);
+          self._metadataResolver.getNgModuleMetadata(symbol, true) !, self.reflector);
       for (const lazyRoute of lazyRoutes) {
         allLazyRoutes.push(lazyRoute);
         visitLazyRoute(lazyRoute.referencedModule, seenRoutes, allLazyRoutes);
@@ -682,12 +788,18 @@ export interface NgAnalyzedModules {
   symbolsMissingModule?: StaticSymbol[];
 }
 
+export interface NgAnalyzedFileWithInjectables {
+  fileName: string;
+  injectables: CompileInjectableMetadata[];
+  shallowModules: CompileShallowModuleMetadata[];
+}
+
 export interface NgAnalyzedFile {
   fileName: string;
   directives: StaticSymbol[];
   pipes: StaticSymbol[];
   ngModules: CompileNgModuleMetadata[];
-  injectables: StaticSymbol[];
+  injectables: CompileInjectableMetadata[];
   exportsNonSourceFiles: boolean;
 }
 
@@ -747,7 +859,7 @@ export function analyzeFile(
     metadataResolver: CompileMetadataResolver, fileName: string): NgAnalyzedFile {
   const directives: StaticSymbol[] = [];
   const pipes: StaticSymbol[] = [];
-  const injectables: StaticSymbol[] = [];
+  const injectables: CompileInjectableMetadata[] = [];
   const ngModules: CompileNgModuleMetadata[] = [];
   const hasDecorators = staticSymbolResolver.hasDecorators(fileName);
   let exportsNonSourceFiles = false;
@@ -779,7 +891,10 @@ export function analyzeFile(
           }
         } else if (metadataResolver.isInjectable(symbol)) {
           isNgSymbol = true;
-          injectables.push(symbol);
+          const injectable = metadataResolver.getInjectableMetadata(symbol, null, false);
+          if (injectable) {
+            injectables.push(injectable);
+          }
         }
       }
       if (!isNgSymbol) {
@@ -791,6 +906,36 @@ export function analyzeFile(
   return {
       fileName, directives, pipes, ngModules, injectables, exportsNonSourceFiles,
   };
+}
+
+export function analyzeFileForInjectables(
+    host: NgAnalyzeModulesHost, staticSymbolResolver: StaticSymbolResolver,
+    metadataResolver: CompileMetadataResolver, fileName: string): NgAnalyzedFileWithInjectables {
+  const injectables: CompileInjectableMetadata[] = [];
+  const shallowModules: CompileShallowModuleMetadata[] = [];
+  if (staticSymbolResolver.hasDecorators(fileName)) {
+    staticSymbolResolver.getSymbolsOf(fileName).forEach((symbol) => {
+      const resolvedSymbol = staticSymbolResolver.resolveSymbol(symbol);
+      const symbolMeta = resolvedSymbol.metadata;
+      if (!symbolMeta || symbolMeta.__symbolic === 'error') {
+        return;
+      }
+      if (symbolMeta.__symbolic === 'class') {
+        if (metadataResolver.isInjectable(symbol)) {
+          const injectable = metadataResolver.getInjectableMetadata(symbol, null, false);
+          if (injectable) {
+            injectables.push(injectable);
+          }
+        } else if (metadataResolver.isNgModule(symbol)) {
+          const module = metadataResolver.getShallowModuleMetadata(symbol);
+          if (module) {
+            shallowModules.push(module);
+          }
+        }
+      }
+    });
+  }
+  return {fileName, injectables, shallowModules};
 }
 
 function isValueExportingNonSourceFile(host: NgAnalyzeModulesHost, metadata: any): boolean {

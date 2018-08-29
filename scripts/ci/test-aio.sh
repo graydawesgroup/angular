@@ -24,19 +24,26 @@ source ${thisDir}/_travis-fold.sh
     yarn test-pwa-score-localhost
   travisFoldEnd "test.aio.pwaScore"
 
+  # Check the bundle sizes.
+  # (Run before unit and e2e tests, which destroy the `dist/` directory.)
+  travisFoldStart "test.aio.payload-size"
+    yarn payload-size
+  travisFoldEnd "test.aio.payload-size"
 
   # Run unit tests
   travisFoldStart "test.aio.unit"
-    yarn test --single-run
+    yarn test --watch=false
   travisFoldEnd "test.aio.unit"
-
 
   # Run e2e tests
   travisFoldStart "test.aio.e2e"
-    # Use `production` mode to catch issues introduced by build optimizations.
-    yarn e2e-prod
+    yarn e2e
   travisFoldEnd "test.aio.e2e"
 
+  # Run unit tests for Firebase redirects
+  travisFoldStart "test.aio.redirects"
+    yarn redirects-test
+  travisFoldEnd "test.aio.redirects"
 
   # Run unit tests for aio/aio-builds-setup
   travisFoldStart "test.aio.aio-builds-setup"

@@ -6,6 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {processNavigationUrls} from '../../config/src/generator';
 import {CacheDatabase} from '../src/db-cache';
 import {Driver, DriverReadyState} from '../src/driver';
 import {Manifest} from '../src/manifest';
@@ -23,7 +24,11 @@ const dist =
         .addFile('/baz.txt', 'this is baz')
         .addFile('/qux.txt', 'this is qux')
         .addFile('/quux.txt', 'this is quux')
+        .addFile('/quuux.txt', 'this is quuux')
+        .addFile('/lazy/unchanged1.txt', 'this is unchanged (1)')
+        .addFile('/lazy/unchanged2.txt', 'this is unchanged (2)')
         .addUnhashedFile('/unhashed/a.txt', 'this is unhashed', {'Cache-Control': 'max-age=10'})
+        .addUnhashedFile('/unhashed/b.txt', 'this is unhashed b', {'Cache-Control': 'no-cache'})
         .build();
 
 const distUpdate =
@@ -33,7 +38,12 @@ const distUpdate =
         .addFile('/baz.txt', 'this is baz v2')
         .addFile('/qux.txt', 'this is qux v2')
         .addFile('/quux.txt', 'this is quux v2')
+        .addFile('/quuux.txt', 'this is quuux v2')
+        .addFile('/lazy/unchanged1.txt', 'this is unchanged (1)')
+        .addFile('/lazy/unchanged2.txt', 'this is unchanged (2)')
         .addUnhashedFile('/unhashed/a.txt', 'this is unhashed v2', {'Cache-Control': 'max-age=10'})
+        .addUnhashedFile('/ignored/file1', 'this is not handled by the SW')
+        .addUnhashedFile('/ignored/dir/file2', 'this is not handled by the SW either')
         .build();
 
 const brokenFs = new MockFileSystemBuilder().addFile('/foo.txt', 'this is foo').build();
@@ -51,6 +61,7 @@ const brokenManifest: Manifest = {
     patterns: [],
   }],
   dataGroups: [],
+  navigationUrls: processNavigationUrls(''),
   hashTable: tmpHashTableForFs(brokenFs, {'/foo.txt': true}),
 };
 
@@ -88,10 +99,16 @@ const manifest: Manifest = {
       name: 'lazy_prefetch',
       installMode: 'lazy',
       updateMode: 'prefetch',
-      urls: ['/quux.txt'],
+      urls: [
+        '/quux.txt',
+        '/quuux.txt',
+        '/lazy/unchanged1.txt',
+        '/lazy/unchanged2.txt',
+      ],
       patterns: [],
     }
   ],
+  navigationUrls: processNavigationUrls(''),
   hashTable: tmpHashTableForFs(dist),
 };
 
@@ -129,10 +146,23 @@ const manifestUpdate: Manifest = {
       name: 'lazy_prefetch',
       installMode: 'lazy',
       updateMode: 'prefetch',
-      urls: ['/quux.txt'],
+      urls: [
+        '/quux.txt',
+        '/quuux.txt',
+        '/lazy/unchanged1.txt',
+        '/lazy/unchanged2.txt',
+      ],
       patterns: [],
     }
   ],
+  navigationUrls: processNavigationUrls(
+      '',
+      [
+        '/**/file1',
+        '/**/file2',
+        '!/ignored/file1',
+        '!/ignored/dir/**',
+      ]),
   hashTable: tmpHashTableForFs(distUpdate),
 };
 
@@ -170,7 +200,11 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
     let driver: Driver;
 
     beforeEach(() => {
-      server.clearRequests();
+      server.reset();
+      serverUpdate.reset();
+      server404.reset();
+      brokenServer.reset();
+
       scope = new SwTestHarnessBuilder().withServerState(server).build();
       driver = new Driver(scope, scope, new CacheDatabase(scope, scope));
     });
@@ -275,39 +309,6 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       serverUpdate.assertNoOtherRequests();
     });
 
-    async_it('updates to new content when requested', async() => {
-      expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
-      await driver.initialized;
-
-      const client = scope.clients.getMock('default') !;
-      expect(client.messages).toEqual([]);
-
-      scope.updateServerState(serverUpdate);
-      expect(await driver.checkForUpdate()).toEqual(true);
-      serverUpdate.assertSawRequestFor('ngsw.json');
-      serverUpdate.assertSawRequestFor('/foo.txt');
-      serverUpdate.assertSawRequestFor('/redirected.txt');
-      serverUpdate.assertNoOtherRequests();
-
-      expect(client.messages).toEqual([{
-        type: 'UPDATE_AVAILABLE',
-        current: {hash: manifestHash, appData: {version: 'original'}},
-        available: {hash: manifestUpdateHash, appData: {version: 'update'}},
-      }]);
-
-      // Default client is still on the old version of the app.
-      expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
-
-      // Sending a new client id should result in the updated version being returned.
-      expect(await makeRequest(scope, '/foo.txt', 'new')).toEqual('this is foo v2');
-
-      // Of course, the old version should still work.
-      expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
-
-      expect(await makeRequest(scope, '/bar.txt')).toEqual('this is bar');
-      serverUpdate.assertNoOtherRequests();
-    });
-
     async_it('updates a specific client to new content on request', async() => {
       expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
       await driver.initialized;
@@ -334,6 +335,27 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       ]);
 
       expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo v2');
+    });
+
+    async_it('handles empty client ID', async() => {
+      const navRequest = (url: string, clientId: string | null) =>
+          makeRequest(scope, url, clientId, {
+            headers: {Accept: 'text/plain, text/html, text/css'},
+            mode: 'navigate',
+          });
+
+      // Initialize the SW.
+      expect(await navRequest('/foo/file1', '')).toEqual('this is foo');
+      expect(await navRequest('/bar/file2', null)).toEqual('this is foo');
+      await driver.initialized;
+
+      // Update to a new version.
+      scope.updateServerState(serverUpdate);
+      expect(await driver.checkForUpdate()).toEqual(true);
+
+      // Correctly handle navigation requests, even if `clientId` is null/empty.
+      expect(await navRequest('/foo/file1', '')).toEqual('this is foo v2');
+      expect(await navRequest('/bar/file2', null)).toEqual('this is foo v2');
     });
 
     async_it('checks for updates on restart', async() => {
@@ -403,8 +425,8 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       serverUpdate.clearRequests();
 
       scope = new SwTestHarnessBuilder()
-                  .withServerState(serverUpdate)
                   .withCacheState(scope.caches.dehydrate())
+                  .withServerState(serverUpdate)
                   .build();
       driver = new Driver(scope, scope, new CacheDatabase(scope, scope));
 
@@ -423,7 +445,7 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       expect(await driver.checkForUpdate()).toEqual(true);
       serverUpdate.clearRequests();
 
-      expect(await makeRequest(scope, '/baz', 'default', {
+      expect(await makeRequest(scope, '/file1', 'default', {
         headers: {
           'Accept': 'text/plain, text/html, text/css',
         },
@@ -478,6 +500,10 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       await driver.initialized;
       serverUpdate.assertNoOtherRequests();
 
+      let keys = await scope.caches.keys();
+      let hasOriginalCaches = keys.some(name => name.startsWith(`ngsw:${manifestHash}:`));
+      expect(hasOriginalCaches).toEqual(true);
+
       scope.clients.remove('default');
 
       scope.advance(12000);
@@ -487,16 +513,14 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       driver = new Driver(scope, scope, new CacheDatabase(scope, scope));
       expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo v2');
 
-      const oldManifestHash = sha1(JSON.stringify(manifest));
-      const keys = await scope.caches.keys();
-      const hasOldCaches = keys.some(name => name.startsWith(oldManifestHash + ':'));
-      expect(hasOldCaches).toEqual(false);
+      keys = await scope.caches.keys();
+      hasOriginalCaches = keys.some(name => name.startsWith(`ngsw:${manifestHash}:`));
+      expect(hasOriginalCaches).toEqual(false);
     });
 
     async_it('shows notifications for push notifications', async() => {
       expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
       await driver.initialized;
-      scope.clients.add('default');
       await scope.handlePush({
         notification: {
           title: 'This is a test',
@@ -521,14 +545,45 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
     async_it('prefetches updates to lazy cache when set', async() => {
       expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
       await driver.initialized;
-      expect(await makeRequest(scope, '/quux.txt')).toEqual('this is quux');
 
+      // Fetch some files from the `lazy_prefetch` asset group.
+      expect(await makeRequest(scope, '/quux.txt')).toEqual('this is quux');
+      expect(await makeRequest(scope, '/lazy/unchanged1.txt')).toEqual('this is unchanged (1)');
+
+      // Install update.
       scope.updateServerState(serverUpdate);
-      expect(await driver.checkForUpdate()).toEqual(true);
+      expect(await driver.checkForUpdate()).toBe(true);
+
+      // Previously requested and changed: Fetch from network.
       serverUpdate.assertSawRequestFor('/quux.txt');
+      // Never requested and changed: Don't fetch.
+      serverUpdate.assertNoRequestFor('/quuux.txt');
+      // Previously requested and unchanged: Fetch from cache.
+      serverUpdate.assertNoRequestFor('/lazy/unchanged1.txt');
+      // Never requested and unchanged: Don't fetch.
+      serverUpdate.assertNoRequestFor('/lazy/unchanged2.txt');
+
       serverUpdate.clearRequests();
-      driver.updateClient(await scope.clients.get('default'));
-      expect(await makeRequest(scope, '/quux.txt')).toEqual('this is quux v2');
+
+      // Update client.
+      await driver.updateClient(await scope.clients.get('default'));
+
+      // Already cached.
+      expect(await makeRequest(scope, '/quux.txt')).toBe('this is quux v2');
+      serverUpdate.assertNoOtherRequests();
+
+      // Not cached: Fetch from network.
+      expect(await makeRequest(scope, '/quuux.txt')).toBe('this is quuux v2');
+      serverUpdate.assertSawRequestFor('/quuux.txt');
+
+      // Already cached (copied from old cache).
+      expect(await makeRequest(scope, '/lazy/unchanged1.txt')).toBe('this is unchanged (1)');
+      serverUpdate.assertNoOtherRequests();
+
+      // Not cached: Fetch from network.
+      expect(await makeRequest(scope, '/lazy/unchanged2.txt')).toBe('this is unchanged (2)');
+      serverUpdate.assertSawRequestFor('/lazy/unchanged2.txt');
+
       serverUpdate.assertNoOtherRequests();
     });
 
@@ -542,6 +597,17 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       expect(await scope.caches.keys()).toEqual([]);
     });
 
+    async_it('does not unregister or change state when offline (i.e. manifest 504s)', async() => {
+      expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
+      await driver.initialized;
+      server.online = false;
+
+      expect(await driver.checkForUpdate()).toEqual(false);
+      expect(driver.state).toEqual(DriverReadyState.NORMAL);
+      expect(scope.unregistered).toBeFalsy();
+      expect(await scope.caches.keys()).not.toEqual([]);
+    });
+
     describe('unhashed requests', () => {
       async_beforeEach(async() => {
         expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
@@ -553,6 +619,13 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
         expect(await makeRequest(scope, '/unhashed/a.txt')).toEqual('this is unhashed');
         server.assertSawRequestFor('/unhashed/a.txt');
         expect(await makeRequest(scope, '/unhashed/a.txt')).toEqual('this is unhashed');
+        server.assertNoOtherRequests();
+      });
+
+      async_it(`doesn't error when 'Cache-Control' is 'no-cache'`, async() => {
+        expect(await makeRequest(scope, '/unhashed/b.txt')).toEqual('this is unhashed b');
+        server.assertSawRequestFor('/unhashed/b.txt');
+        expect(await makeRequest(scope, '/unhashed/b.txt')).toEqual('this is unhashed b');
         server.assertNoOtherRequests();
       });
 
@@ -639,7 +712,13 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
         serverUpdate.assertNoOtherRequests();
       });
     });
+
     describe('routing', () => {
+      const navRequest = (url: string, init = {}) => makeRequest(scope, url, undefined, {
+        headers: {Accept: 'text/plain, text/html, text/css'},
+        mode: 'navigate', ...init,
+      });
+
       async_beforeEach(async() => {
         expect(await makeRequest(scope, '/foo.txt')).toEqual('this is foo');
         await driver.initialized;
@@ -647,51 +726,101 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
       });
 
       async_it('redirects to index on a route-like request', async() => {
-        expect(await makeRequest(scope, '/baz', 'default', {
-          headers: {
-            'Accept': 'text/plain, text/html, text/css',
-          },
-          mode: 'navigate',
-        })).toEqual('this is foo');
+        expect(await navRequest('/baz')).toEqual('this is foo');
         server.assertNoOtherRequests();
       });
 
       async_it('redirects to index on a request to the origin URL request', async() => {
-        expect(await makeRequest(scope, 'http://example.com', 'default', {
-          headers: {
-            'Accept': 'text/plain, text/html, text/css',
-          },
-          mode: 'navigate',
-        })).toEqual('this is foo');
+        expect(await navRequest('http://localhost/')).toEqual('this is foo');
         server.assertNoOtherRequests();
       });
 
       async_it('does not redirect to index on a non-navigation request', async() => {
-        expect(await makeRequest(scope, '/baz', 'default', {
-          headers: {
-            'Accept': 'text/plain, text/html, text/css',
-          },
-        })).toBeNull();
+        expect(await navRequest('/baz', {mode: undefined})).toBeNull();
         server.assertSawRequestFor('/baz');
+      });
+
+      async_it('does not redirect to index on a request that does not accept HTML', async() => {
+        expect(await navRequest('/baz', {headers: {}})).toBeNull();
+        server.assertSawRequestFor('/baz');
+
+        expect(await navRequest('/qux', {headers: {'Accept': 'text/plain'}})).toBeNull();
+        server.assertSawRequestFor('/qux');
       });
 
       async_it('does not redirect to index on a request with an extension', async() => {
-        expect(await makeRequest(scope, '/baz.html', 'default', {
-          headers: {
-            'Accept': 'text/plain, text/html, text/css',
-          },
-        })).toBeNull();
+        expect(await navRequest('/baz.html')).toBeNull();
         server.assertSawRequestFor('/baz.html');
+
+        // Only considers the last path segment when checking for a file extension.
+        expect(await navRequest('/baz.html/qux')).toBe('this is foo');
+        server.assertNoOtherRequests();
       });
 
-      async_it('does not redirect to index on a request that does not expect HTML', async() => {
-        expect(await makeRequest(scope, '/baz', 'default', {
-          headers: {
-            'Accept': 'text/plain, text/css',
-          },
-          mode: 'navigate',
-        })).toBeNull();
-        server.assertSawRequestFor('/baz');
+      async_it('does not redirect to index if the URL contains `__`', async() => {
+        expect(await navRequest('/baz/x__x')).toBeNull();
+        server.assertSawRequestFor('/baz/x__x');
+
+        expect(await navRequest('/baz/x__x/qux')).toBeNull();
+        server.assertSawRequestFor('/baz/x__x/qux');
+
+        expect(await navRequest('/baz/__')).toBeNull();
+        server.assertSawRequestFor('/baz/__');
+
+        expect(await navRequest('/baz/__/qux')).toBeNull();
+        server.assertSawRequestFor('/baz/__/qux');
+      });
+
+      describe('(with custom `navigationUrls`)', () => {
+        async_beforeEach(async() => {
+          scope.updateServerState(serverUpdate);
+          await driver.checkForUpdate();
+          serverUpdate.clearRequests();
+        });
+
+        async_it('redirects to index on a request that matches any positive pattern', async() => {
+          expect(await navRequest('/foo/file0')).toBeNull();
+          serverUpdate.assertSawRequestFor('/foo/file0');
+
+          expect(await navRequest('/foo/file1')).toBe('this is foo v2');
+          serverUpdate.assertNoOtherRequests();
+
+          expect(await navRequest('/bar/file2')).toBe('this is foo v2');
+          serverUpdate.assertNoOtherRequests();
+        });
+
+        async_it(
+            'does not redirect to index on a request that matches any negative pattern',
+            async() => {
+              expect(await navRequest('/ignored/file1')).toBe('this is not handled by the SW');
+              serverUpdate.assertSawRequestFor('/ignored/file1');
+
+              expect(await navRequest('/ignored/dir/file2'))
+                  .toBe('this is not handled by the SW either');
+              serverUpdate.assertSawRequestFor('/ignored/dir/file2');
+
+              expect(await navRequest('/ignored/directory/file2')).toBe('this is foo v2');
+              serverUpdate.assertNoOtherRequests();
+            });
+
+        async_it('strips URL query before checking `navigationUrls`', async() => {
+          expect(await navRequest('/foo/file1?query=/a/b')).toBe('this is foo v2');
+          serverUpdate.assertNoOtherRequests();
+
+          expect(await navRequest('/ignored/file1?query=/a/b'))
+              .toBe('this is not handled by the SW');
+          serverUpdate.assertSawRequestFor('/ignored/file1');
+
+          expect(await navRequest('/ignored/dir/file2?query=/a/b'))
+              .toBe('this is not handled by the SW either');
+          serverUpdate.assertSawRequestFor('/ignored/dir/file2');
+        });
+
+        async_it('strips registration scope before checking `navigationUrls`', async() => {
+          expect(await navRequest('http://localhost/ignored/file1'))
+              .toBe('this is not handled by the SW');
+          serverUpdate.assertSawRequestFor('/ignored/file1');
+        });
       });
     });
 
@@ -721,16 +850,25 @@ const manifestUpdateHash = sha1(JSON.stringify(manifestUpdate));
 
         expect(driver.state).toEqual(DriverReadyState.EXISTING_CLIENTS_ONLY);
       });
+
+      async_it('ignores invalid `only-if-cached` requests ', async() => {
+        const requestFoo = (cache: RequestCache | 'only-if-cached', mode: RequestMode) =>
+            makeRequest(scope, '/foo.txt', undefined, {cache, mode});
+
+        expect(await requestFoo('default', 'no-cors')).toBe('this is foo');
+        expect(await requestFoo('only-if-cached', 'same-origin')).toBe('this is foo');
+        expect(await requestFoo('only-if-cached', 'no-cors')).toBeNull();
+      });
     });
   });
 })();
 
 async function makeRequest(
-    scope: SwTestHarness, url: string, clientId?: string, init?: Object): Promise<string|null> {
-  const [resPromise, done] = scope.handleFetch(new MockRequest(url, init), clientId || 'default');
+    scope: SwTestHarness, url: string, clientId: string | null = 'default',
+    init?: Object): Promise<string|null> {
+  const [resPromise, done] = scope.handleFetch(new MockRequest(url, init), clientId);
   await done;
   const res = await resPromise;
-  scope.clients.add(clientId || 'default');
   if (res !== undefined && res.ok) {
     return res.text();
   }

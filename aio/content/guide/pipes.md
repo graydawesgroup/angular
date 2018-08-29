@@ -3,7 +3,7 @@
 Every application starts out with what seems like a simple task: get data, transform them, and show them to users.
 Getting data could be as simple as creating a local variable or as complex as streaming data over a WebSocket.
 
-Once data arrive, you could push their raw `toString` values directly to the view,
+Once data arrives, you could push their raw `toString` values directly to the view,
 but that rarely makes for a good user experience.
 For example, in most use cases, users prefer to see a date in a simple format like
 <samp>April 15, 1988</samp> rather than the raw string format
@@ -16,7 +16,7 @@ In fact, you might like to apply them in your HTML templates as you do styles.
 
 Introducing Angular pipes, a way to write display-value transformations that you can declare in your HTML.
 
-You can run the <live-example></live-example> in Plunker and download the code from there.
+You can run the <live-example></live-example> in Stackblitz and download the code from there.
 
 
 ## Using pipes
@@ -54,7 +54,7 @@ Angular comes with a stock of pipes such as
 They are all available for use in any template.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -123,7 +123,7 @@ As you click the button, the displayed date alternates between
 
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -186,7 +186,7 @@ Your pipe has one such parameter: the `exponent`.
    Your pipe's name is `exponentialStrength`.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -390,7 +390,7 @@ For this reason, a pure pipe is preferable when you can live with the change det
 When you can't, you *can* use the impure pipe.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -496,7 +496,7 @@ Remember that impure pipes are called every few milliseconds.
 If you're not careful, this pipe will punish the server with requests.
 
 In the following code, the pipe only calls the server when the request URL changes and it caches the server response.
-The code uses the [Angular http](guide/http) client to retrieve data</span>:
+The code uses the [Angular http](guide/http) client to retrieve data:
 
 
 <code-example path="pipes/src/app/fetch-json.pipe.ts" title="src/app/fetch-json.pipe.ts">

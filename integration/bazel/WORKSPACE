@@ -1,33 +1,30 @@
 workspace(name = "bazel_integration_test")
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+#
+# Download Bazel toolchain dependencies as needed by build actions
+#
 
-git_repository(
-    name = "build_bazel_rules_nodejs",
-    remote = "https://github.com/bazelbuild/rules_nodejs.git",
-    tag = "0.3.1",
-)
-
-load("@build_bazel_rules_nodejs//:defs.bzl", "node_repositories")
-node_repositories(package_json = ["//:package.json"])
-
-git_repository(
+local_repository(
     name = "build_bazel_rules_typescript",
-    # Use alexeagle's branch temporarily to allow a green build in the middle of
-    # the tsconfig refactoring.
-    # TODO(alexeagle): after the change lands in google3, push it to bazelbuild
-    # mirror and point this back to upstream.
-    remote = "https://github.com/alexeagle/rules_typescript.git",
-    commit = "5ccf967a393d94f53b5b1a97760eb1e18367faa3"
+    path = "node_modules/@bazel/typescript",
+)
+load("@build_bazel_rules_typescript//:package.bzl", "rules_typescript_dependencies")
+rules_typescript_dependencies()
+
+http_archive(
+    name = "io_bazel_rules_sass",
+    url = "https://github.com/bazelbuild/rules_sass/archive/1.11.0.zip",
+    strip_prefix = "rules_sass-1.11.0",
+    sha256 = "dbe9fb97d5a7833b2a733eebc78c9c1e3880f676ac8af16e58ccf2139cbcad03",
 )
 
-load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
-
-ts_setup_workspace()
+#
+# Point Bazel to WORKSPACEs that live in subdirectories
+#
 
 local_repository(
     name = "angular",
-    path = "node_modules/@angular/bazel",
+    path = "../..",
 )
 
 local_repository(
@@ -35,12 +32,36 @@ local_repository(
     path = "node_modules/rxjs/src",
 )
 
-git_repository(
-    name = "io_bazel_rules_sass",
-    remote = "https://github.com/bazelbuild/rules_sass.git",
-    tag = "0.0.3",
+#
+# Load and install our dependencies downloaded above.
+#
+
+load("@build_bazel_rules_nodejs//:defs.bzl", "check_bazel_version", "node_repositories")
+
+check_bazel_version("0.16.0")
+node_repositories(package_json = ["//:package.json"])
+
+load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
+
+go_rules_dependencies()
+go_register_toolchains()
+
+load("@io_bazel_rules_webtesting//web:repositories.bzl", "browser_repositories", "web_test_repositories")
+
+web_test_repositories()
+browser_repositories(
+    chromium = True,
+    firefox = True,
 )
 
-load("@io_bazel_rules_sass//sass:sass.bzl", "sass_repositories")
+load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
+
+ts_setup_workspace()
+
+load("@io_bazel_rules_sass//sass:sass_repositories.bzl", "sass_repositories")
 
 sass_repositories()
+
+load("@angular//:index.bzl", "ng_setup_workspace")
+
+ng_setup_workspace()

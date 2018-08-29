@@ -58,7 +58,7 @@ export interface ReceivedMessage {
 export declare const enum SerializerTypes {
     RENDERER_TYPE_2 = 0,
     PRIMITIVE = 1,
-    RENDER_STORE_OBJECT = 2,
+    RENDER_STORE_OBJECT = 2
 }
 
 /** @experimental */
@@ -73,27 +73,32 @@ export declare class ServiceMessageBrokerFactory {
 
 /** @experimental */
 export declare class UiArguments {
-    args: FnArg[] | undefined;
+    args?: FnArg[] | undefined;
     method: string;
     constructor(method: string, args?: FnArg[] | undefined);
 }
 
-/** @stable */
 export declare const VERSION: Version;
 
 /** @experimental */
 export declare const WORKER_APP_LOCATION_PROVIDERS: ({
     provide: typeof PlatformLocation;
     useClass: typeof WebWorkerPlatformLocation;
+    useFactory?: undefined;
+    multi?: undefined;
+    deps?: undefined;
 } | {
     provide: InjectionToken<(() => void)[]>;
-    useFactory: (platformLocation: WebWorkerPlatformLocation, zone: NgZone) => () => Promise<boolean>;
+    useFactory: typeof appInitFnFactory;
     multi: boolean;
     deps: (typeof NgZone | typeof PlatformLocation)[];
+    useClass?: undefined;
 } | {
     provide: InjectionToken<Promise<any>>;
-    useFactory: (platformLocation: WebWorkerPlatformLocation) => Promise<any>;
+    useFactory: typeof locationInitialized;
     deps: (typeof PlatformLocation)[];
+    useClass?: undefined;
+    multi?: undefined;
 })[];
 
 /** @experimental */

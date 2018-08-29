@@ -1,62 +1,147 @@
 workspace(name = "angular")
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-
-git_repository(
+#
+# Download Bazel toolchain dependencies as needed by build actions
+#
+http_archive(
     name = "build_bazel_rules_nodejs",
-    remote = "https://github.com/bazelbuild/rules_nodejs.git",
-    tag = "0.3.1",
+    urls = ["https://github.com/bazelbuild/rules_nodejs/archive/0.12.0.zip"],
+    strip_prefix = "rules_nodejs-0.12.0",
+    sha256 = "2977cdbc8ae0eed7d4186385af56a50a3321a549e2136a959998bba89d2edb6e",
 )
 
-load("@build_bazel_rules_nodejs//:defs.bzl", "check_bazel_version", "node_repositories")
-
-check_bazel_version("0.9.0")
-node_repositories(package_json = ["//:package.json"])
-
-git_repository(
+http_archive(
     name = "build_bazel_rules_typescript",
-    # Use alexeagle's branch temporarily to allow a green build in the middle of
-    # the tsconfig refactoring.
-    # TODO(alexeagle): after the change lands in google3, push it to bazelbuild
-    # mirror and point this back to upstream.
-    remote = "https://github.com/alexeagle/rules_typescript.git",
-    commit = "5ccf967a393d94f53b5b1a97760eb1e18367faa3"
+    url = "https://github.com/bazelbuild/rules_typescript/archive/0.16.1.zip",
+    strip_prefix = "rules_typescript-0.16.1",
+    sha256 = "5b2b0bc63cfcffe7bf97cad2dad3b26a73362f806de66207051f66c87956a995",
+)
+load("@build_bazel_rules_typescript//:package.bzl", "rules_typescript_dependencies")
+rules_typescript_dependencies()
+
+http_archive(
+  name = "bazel_toolchains",
+  urls = [
+    "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/archive/5124557861ebf4c0b67f98180bff1f8551e0b421.tar.gz",
+    "https://github.com/bazelbuild/bazel-toolchains/archive/5124557861ebf4c0b67f98180bff1f8551e0b421.tar.gz",
+  ],
+  strip_prefix = "bazel-toolchains-5124557861ebf4c0b67f98180bff1f8551e0b421",
+  sha256 = "c3b08805602cd1d2b67ebe96407c1e8c6ed3d4ce55236ae2efe2f1948f38168d",
 )
 
-load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
+http_archive(
+    name = "io_bazel_rules_sass",
+    url = "https://github.com/bazelbuild/rules_sass/archive/1.11.0.zip",
+    strip_prefix = "rules_sass-1.11.0",
+    sha256 = "dbe9fb97d5a7833b2a733eebc78c9c1e3880f676ac8af16e58ccf2139cbcad03",
+)
 
-ts_setup_workspace()
+# This commit matches the version of buildifier in angular/ngcontainer
+# If you change this, also check if it matches the version in the angular/ngcontainer
+# version in /.circleci/config.yml
+BAZEL_BUILDTOOLS_VERSION = "82b21607e00913b16fe1c51bec80232d9d6de31c"
+
+http_archive(
+    name = "com_github_bazelbuild_buildtools",
+    url = "https://github.com/bazelbuild/buildtools/archive/%s.zip" % BAZEL_BUILDTOOLS_VERSION,
+    strip_prefix = "buildtools-%s" % BAZEL_BUILDTOOLS_VERSION,
+    sha256 = "edb24c2f9c55b10a820ec74db0564415c0cf553fa55e9fc709a6332fb6685eff",
+)
+
+# Fetching the Bazel source code allows us to compile the Skylark linter
+http_archive(
+    name = "io_bazel",
+    url = "https://github.com/bazelbuild/bazel/archive/968f87900dce45a7af749a965b72dbac51b176b3.zip",
+    strip_prefix = "bazel-968f87900dce45a7af749a965b72dbac51b176b3",
+    sha256 = "e373d2ae24955c1254c495c9c421c009d88966565c35e4e8444c082cb1f0f48f",
+)
+
+http_archive(
+    name = "io_bazel_skydoc",
+    # TODO: switch to upstream when https://github.com/bazelbuild/skydoc/pull/103 is merged
+    url = "https://github.com/alexeagle/skydoc/archive/fe2e9f888d28e567fef62ec9d4a93c425526d701.zip",
+    strip_prefix = "skydoc-fe2e9f888d28e567fef62ec9d4a93c425526d701",
+    sha256 = "7bfb5545f59792a2745f2523b9eef363f9c3e7274791c030885e7069f8116016",
+)
+
+# We have a source dependency on the Devkit repository, because it's built with
+# Bazel.
+# This allows us to edit sources and have the effect appear immediately without
+# re-packaging or "npm link"ing.
+# Even better, things like aspects will visit the entire graph including
+# ts_library rules in the devkit repository.
+http_archive(
+    name = "angular_cli",
+    url = "https://github.com/angular/angular-cli/archive/v6.1.0-rc.0.zip",
+    strip_prefix = "angular-cli-6.1.0-rc.0",
+    sha256 = "8cf320ea58c321e103f39087376feea502f20eaf79c61a4fdb05c7286c8684fd",
+)
+
+http_archive(
+    name = "org_brotli",
+    url = "https://github.com/google/brotli/archive/v1.0.5.zip",
+    strip_prefix = "brotli-1.0.5",
+    sha256 = "774b893a0700b0692a76e2e5b7e7610dbbe330ffbe3fe864b4b52ca718061d5a",
+)
+
+#
+# Point Bazel to WORKSPACEs that live in subdirectories
+#
 
 local_repository(
     name = "rxjs",
     path = "node_modules/rxjs/src",
 )
 
-git_repository(
-    name = "com_github_bazelbuild_buildtools",
-    remote = "https://github.com/bazelbuild/buildtools.git",
-    # Note, this commit matches the version of buildifier in angular/ngcontainer
-    # If you change this, also check if it matches the version in the angular/ngcontainer
-    # version in /.circleci/config.yml
-    commit = "b3b620e8bcff18ed3378cd3f35ebeb7016d71f71",
+# Point to the integration test workspace just so that Bazel doesn't descend into it
+# when expanding the //... pattern
+local_repository(
+    name = "bazel_integration_test",
+    path = "integration/bazel",
 )
 
-http_archive(
-    name = "io_bazel_rules_go",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.7.1/rules_go-0.7.1.tar.gz",
-    sha256 = "341d5eacef704415386974bc82a1783a8b7ffbff2ab6ba02375e1ca20d9b031c",
+#
+# Load and install our dependencies downloaded above.
+#
+
+load("@build_bazel_rules_nodejs//:defs.bzl", "check_bazel_version", "node_repositories")
+
+check_bazel_version("0.16.0", """
+If you are on a Mac and using Homebrew, there is a breaking change to the installation in Bazel 0.16
+See https://blog.bazel.build/2018/08/22/bazel-homebrew.html
+
+""")
+node_repositories(
+  package_json = ["//:package.json"],
+  preserve_symlinks = True,
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
 
 go_rules_dependencies()
-
 go_register_toolchains()
 
-# Fetching the Bazel source code allows us to compile the Skylark linter
-http_archive(
-    name = "io_bazel",
-    url = "https://github.com/bazelbuild/bazel/archive/9755c72b48866ed034bd28aa033e9abd27431b1e.zip",
-    strip_prefix = "bazel-9755c72b48866ed034bd28aa033e9abd27431b1e",
-    sha256 = "5b8443fc3481b5fcd9e7f348e1dd93c1397f78b223623c39eb56494c55f41962",
+load("@io_bazel_rules_webtesting//web:repositories.bzl", "browser_repositories", "web_test_repositories")
+
+web_test_repositories()
+browser_repositories(
+    chromium = True,
+    firefox = True,
 )
+
+load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
+
+ts_setup_workspace()
+
+load("@angular//:index.bzl", "ng_setup_workspace")
+
+ng_setup_workspace()
+
+##################################
+# Skylark documentation generation
+
+load("@io_bazel_rules_sass//sass:sass_repositories.bzl", "sass_repositories")
+sass_repositories()
+
+load("@io_bazel_skydoc//skylark:skylark.bzl", "skydoc_repositories")
+skydoc_repositories()

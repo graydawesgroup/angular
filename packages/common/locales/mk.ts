@@ -9,15 +9,17 @@
 // THIS CODE IS GENERATED - DO NOT MODIFY
 // See angular/tools/gulp-tasks/cldr/extract.js
 
+const u = undefined;
+
 function plural(n: number): number {
   let i = Math.floor(Math.abs(n)), v = n.toString().replace(/^[^.]*\.?/, '').length,
       f = parseInt(n.toString().replace(/^[^.]*\.?/, ''), 10) || 0;
-  if (v === 0 && i % 10 === 1 || f % 10 === 1) return 1;
+  if (v === 0 && i % 10 === 1 && !(i % 100 === 11) || f % 10 === 1 && !(f % 100 === 11)) return 1;
   return 5;
 }
 
 export default [
-  'mk', [['претпл.', 'попл.'], , ['претпладне', 'попладне']], ,
+  'mk', [['претпл.', 'попл.'], u, ['претпладне', 'попладне']], u,
   [
     ['н', 'п', 'в', 'с', 'ч', 'п', 'с'],
     ['нед.', 'пон.', 'вт.', 'сре.', 'чет.', 'пет.', 'саб.'],
@@ -48,15 +50,24 @@ export default [
       'декември'
     ]
   ],
-  , [['пр.н.е.', 'н.е.'], , ['пред нашата ера', 'од нашата ера']], 1,
-  [6, 0], ['dd.M.yy', 'dd.M.y', 'dd MMMM y', 'EEEE, dd MMMM y'],
-  ['HH:mm', 'HH:mm:ss', 'HH:mm:ss z', 'HH:mm:ss zzzz'],
-  [
-    '{1} {0}',
-    ,
-    ,
-  ],
+  u, [['пр.н.е.', 'н.е.'], u, ['пред нашата ера', 'од нашата ера']],
+  1, [6, 0], ['dd.M.yy', 'dd.M.y', 'dd MMMM y', 'EEEE, dd MMMM y'],
+  ['HH:mm', 'HH:mm:ss', 'HH:mm:ss z', 'HH:mm:ss zzzz'], ['{1} {0}', u, u, u],
   [',', '.', ';', '%', '+', '-', 'E', '×', '‰', '∞', 'NaN', ':'],
-  ['#,##0.###', '#,##0%', '#,##0.00 ¤', '#E0'], 'ден', 'Македонски денар',
+  ['#,##0.###', '#,##0%', '#,##0.00 ¤', '#E0'], 'ден', 'Македонски денар', {
+    'AUD': [u, '$'],
+    'CNY': [u, '¥'],
+    'GBP': [u, '£'],
+    'HKD': [u, '$'],
+    'ILS': [u, '₪'],
+    'INR': [u, '₹'],
+    'JPY': [u, '¥'],
+    'KRW': [u, '₩'],
+    'MKD': ['ден'],
+    'NZD': [u, '$'],
+    'TWD': [u, 'NT$'],
+    'USD': ['US$', '$'],
+    'VND': [u, '₫']
+  },
   plural
 ];

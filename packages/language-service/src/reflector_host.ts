@@ -33,7 +33,8 @@ class ReflectorModuleModuleResolutionHost implements ts.ModuleResolutionHost, Me
     return undefined !;
   }
 
-  directoryExists: (directoryName: string) => boolean;
+  // TODO(issue/24571): remove '!'.
+  directoryExists !: (directoryName: string) => boolean;
 
   getSourceFileMetadata(fileName: string) {
     const sf = this.getProgram().getSourceFile(fileName);
@@ -69,7 +70,7 @@ export class ReflectorHost implements StaticSymbolResolverHost {
         throw new Error('Resolution of relative paths requires a containing file.');
       }
       // Any containing file gives the same result for absolute imports
-      containingFile = path.join(this.options.basePath !, 'index.ts');
+      containingFile = path.join(this.options.basePath !, 'index.ts').replace(/\\/g, '/');
     }
     const resolved =
         ts.resolveModuleName(moduleName, containingFile !, this.options, this.hostAdapter)

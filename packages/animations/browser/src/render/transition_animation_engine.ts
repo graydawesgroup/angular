@@ -16,7 +16,7 @@ import {AnimationStyleNormalizer} from '../dsl/style_normalization/animation_sty
 import {ENTER_CLASSNAME, LEAVE_CLASSNAME, NG_ANIMATING_CLASSNAME, NG_ANIMATING_SELECTOR, NG_TRIGGER_CLASSNAME, NG_TRIGGER_SELECTOR, copyObj, eraseStyles, iteratorToArray, setStyles} from '../util';
 
 import {AnimationDriver} from './animation_driver';
-import {getBodyNode, getOrSetAsInMap, listenOnPlayer, makeAnimationEvent, normalizeKeyframes, optimizeGroupPlayer} from './shared';
+import {getOrSetAsInMap, listenOnPlayer, makeAnimationEvent, normalizeKeyframes, optimizeGroupPlayer} from './shared';
 
 const QUEUED_CLASSNAME = 'ng-animate-queued';
 const QUEUED_SELECTOR = '.ng-animate-queued';
@@ -28,13 +28,15 @@ const STAR_SELECTOR = '.ng-star-inserted';
 const EMPTY_PLAYER_ARRAY: TransitionAnimationPlayer[] = [];
 const NULL_REMOVAL_STATE: ElementAnimationState = {
   namespaceId: '',
-  setForRemoval: null,
+  setForRemoval: false,
+  setForMove: false,
   hasAnimation: false,
   removedBeforeQueried: false
 };
 const NULL_REMOVED_QUERIED_STATE: ElementAnimationState = {
   namespaceId: '',
-  setForRemoval: null,
+  setForMove: false,
+  setForRemoval: false,
   hasAnimation: false,
   removedBeforeQueried: true
 };
@@ -58,7 +60,8 @@ export interface QueueInstruction {
 export const REMOVAL_FLAG = '__ng_removed';
 
 export interface ElementAnimationState {
-  setForRemoval: any;
+  setForRemoval: boolean;
+  setForMove: boolean;
   hasAnimation: boolean;
   namespaceId: string;
   removedBeforeQueried: boolean;
@@ -101,7 +104,6 @@ export class StateValue {
 
 export const VOID_VALUE = 'void';
 export const DEFAULT_STATE_VALUE = new StateValue(VOID_VALUE);
-export const DELETED_STATE_VALUE = new StateValue('DELETED');
 
 export class AnimationTransitionNamespace {
   public players: TransitionAnimationPlayer[] = [];
@@ -205,8 +207,6 @@ export class AnimationTransitionNamespace {
 
     if (!fromState) {
       fromState = DEFAULT_STATE_VALUE;
-    } else if (fromState === DELETED_STATE_VALUE) {
-      return player;
     }
 
     const isRemoval = toState.value === VOID_VALUE;
@@ -248,7 +248,8 @@ export class AnimationTransitionNamespace {
       }
     });
 
-    let transition = trigger.matchTransition(fromState.value, toState.value);
+    let transition =
+        trigger.matchTransition(fromState.value, toState.value, element, toState.params);
     let isFallbackTransition = false;
     if (!transition) {
       if (!defaultToFallback) return;
@@ -402,7 +403,7 @@ export class AnimationTransitionNamespace {
 
       // when this `if statement` does not continue forward it means that
       // a previous animation query has selected the current element and
-      // is animating it. In this situation want to continue fowards and
+      // is animating it. In this situation want to continue forwards and
       // allow the element to be queued up for animation later.
       if (currentPlayers && currentPlayers.length) {
         containsPotentialParentTransition = true;
@@ -529,7 +530,9 @@ export class TransitionAnimationEngine {
   /** @internal */
   _onRemovalComplete(element: any, context: any) { this.onRemovalComplete(element, context); }
 
-  constructor(public driver: AnimationDriver, private _normalizer: AnimationStyleNormalizer) {}
+  constructor(
+      public bodyNode: any, public driver: AnimationDriver,
+      private _normalizer: AnimationStyleNormalizer) {}
 
   get queuedPlayers(): TransitionAnimationPlayer[] {
     const players: TransitionAnimationPlayer[] = [];
@@ -645,8 +648,11 @@ export class TransitionAnimationEngine {
 
   trigger(namespaceId: string, element: any, name: string, value: any): boolean {
     if (isElementNode(element)) {
-      this._fetchNamespace(namespaceId).trigger(element, name, value);
-      return true;
+      const ns = this._fetchNamespace(namespaceId);
+      if (ns) {
+        ns.trigger(element, name, value);
+        return true;
+      }
     }
     return false;
   }
@@ -659,13 +665,27 @@ export class TransitionAnimationEngine {
     const details = element[REMOVAL_FLAG] as ElementAnimationState;
     if (details && details.setForRemoval) {
       details.setForRemoval = false;
+      details.setForMove = true;
+      const index = this.collectedLeaveElements.indexOf(element);
+      if (index >= 0) {
+        this.collectedLeaveElements.splice(index, 1);
+      }
     }
 
     // in the event that the namespaceId is blank then the caller
     // code does not contain any animation code in it, but it is
     // just being called so that the node is marked as being inserted
     if (namespaceId) {
-      this._fetchNamespace(namespaceId).insertNode(element, parent);
+      const ns = this._fetchNamespace(namespaceId);
+      // This if-statement is a workaround for router issue #21947.
+      // The router sometimes hits a race condition where while a route
+      // is being instantiated a new navigation arrives, triggering leave
+      // animation of DOM that has not been fully initialized, until this
+      // is resolved, we need to handle the scenario when DOM is not in a
+      // consistent state during the animation.
+      if (ns) {
+        ns.insertNode(element, parent);
+      }
     }
 
     // only *directives and host elements are inserted before
@@ -722,10 +742,10 @@ export class TransitionAnimationEngine {
 
   private _buildInstruction(
       entry: QueueInstruction, subTimelines: ElementInstructionMap, enterClassName: string,
-      leaveClassName: string) {
+      leaveClassName: string, skipBuildAst?: boolean) {
     return entry.transition.build(
         this.driver, entry.element, entry.fromState.value, entry.toState.value, enterClassName,
-        leaveClassName, entry.fromState.options, entry.toState.options, subTimelines);
+        leaveClassName, entry.fromState.options, entry.toState.options, subTimelines, skipBuildAst);
   }
 
   destroyInnerAnimations(containerElement: any) {
@@ -751,10 +771,6 @@ export class TransitionAnimationEngine {
           player.destroy();
         }
       });
-    }
-    const stateMap = this.statesByElement.get(element);
-    if (stateMap) {
-      Object.keys(stateMap).forEach(triggerName => stateMap[triggerName] = DELETED_STATE_VALUE);
     }
   }
 
@@ -876,7 +892,7 @@ export class TransitionAnimationEngine {
       }
     });
 
-    const bodyNode = getBodyNode();
+    const bodyNode = this.bodyNode;
     const allTriggerElements = Array.from(this.statesByElement.keys());
     const enterNodeMap = buildRootMap(allTriggerElements, this.collectedEnterElements);
 
@@ -936,20 +952,36 @@ export class TransitionAnimationEngine {
       const ns = this._namespaceList[i];
       ns.drainQueuedTransitions(microtaskId).forEach(entry => {
         const player = entry.player;
+        const element = entry.element;
         allPlayers.push(player);
 
-        const element = entry.element;
-        if (!bodyNode || !this.driver.containsElement(bodyNode, element)) {
-          player.destroy();
+        if (this.collectedEnterElements.length) {
+          const details = element[REMOVAL_FLAG] as ElementAnimationState;
+          // move animations are currently not supported...
+          if (details && details.setForMove) {
+            player.destroy();
+            return;
+          }
+        }
+
+        const nodeIsOrphaned = !bodyNode || !this.driver.containsElement(bodyNode, element);
+        const leaveClassName = leaveNodeMapIds.get(element) !;
+        const enterClassName = enterNodeMapIds.get(element) !;
+        const instruction = this._buildInstruction(
+            entry, subTimelines, enterClassName, leaveClassName, nodeIsOrphaned) !;
+        if (instruction.errors && instruction.errors.length) {
+          erroneousTransitions.push(instruction);
           return;
         }
 
-        const leaveClassName = leaveNodeMapIds.get(element) !;
-        const enterClassName = enterNodeMapIds.get(element) !;
-        const instruction =
-            this._buildInstruction(entry, subTimelines, enterClassName, leaveClassName) !;
-        if (instruction.errors && instruction.errors.length) {
-          erroneousTransitions.push(instruction);
+        // even though the element may not be apart of the DOM, it may
+        // still be added at a later point (due to the mechanics of content
+        // projection and/or dynamic component insertion) therefore it's
+        // important we still style the element.
+        if (nodeIsOrphaned) {
+          player.onStart(() => eraseStyles(element, instruction.fromStyles));
+          player.onDestroy(() => setStyles(element, instruction.toStyles));
+          skippedPlayers.push(player);
           return;
         }
 
@@ -1081,6 +1113,8 @@ export class TransitionAnimationEngine {
       if (subTimelines.has(element)) {
         if (disabledElementsSet.has(element)) {
           player.onDestroy(() => setStyles(element, instruction.toStyles));
+          player.disabled = true;
+          player.overrideTotalTime(instruction.totalTime);
           skippedPlayers.push(player);
           return;
         }
@@ -1311,7 +1345,8 @@ export class TransitionAnimationEngine {
 
       // FIXME (matsko): make sure to-be-removed animations are removed properly
       const details = element[REMOVAL_FLAG];
-      if (details && details.removedBeforeQueried) return new NoopAnimationPlayer();
+      if (details && details.removedBeforeQueried)
+        return new NoopAnimationPlayer(timelineInstruction.duration, timelineInstruction.delay);
 
       const isQueriedElement = element !== rootElement;
       const previousPlayers =
@@ -1379,7 +1414,7 @@ export class TransitionAnimationEngine {
 
     // special case for when an empty transition|definition is provided
     // ... there is no point in rendering an empty animation
-    return new NoopAnimationPlayer();
+    return new NoopAnimationPlayer(instruction.duration, instruction.delay);
   }
 }
 
@@ -1389,11 +1424,14 @@ export class TransitionAnimationPlayer implements AnimationPlayer {
 
   private _queuedCallbacks: {[name: string]: (() => any)[]} = {};
   public readonly destroyed = false;
-  public parentPlayer: AnimationPlayer;
+  // TODO(issue/24571): remove '!'.
+  public parentPlayer !: AnimationPlayer;
 
   public markedForDestroy: boolean = false;
+  public disabled = false;
 
   readonly queued: boolean = true;
+  public readonly totalTime: number = 0;
 
   constructor(public namespaceId: string, public triggerName: string, public element: any) {}
 
@@ -1407,15 +1445,18 @@ export class TransitionAnimationPlayer implements AnimationPlayer {
     });
     this._queuedCallbacks = {};
     this._containsRealPlayer = true;
+    this.overrideTotalTime(player.totalTime);
     (this as{queued: boolean}).queued = false;
   }
 
   getRealPlayer() { return this._player; }
 
+  overrideTotalTime(totalTime: number) { (this as any).totalTime = totalTime; }
+
   syncPlayerEvents(player: AnimationPlayer) {
     const p = this._player as any;
     if (p.triggerCallback) {
-      player.onStart(() => p.triggerCallback('start'));
+      player.onStart(() => p.triggerCallback !('start'));
     }
     player.onDone(() => this.finish());
     player.onDestroy(() => this.destroy());
@@ -1473,9 +1514,7 @@ export class TransitionAnimationPlayer implements AnimationPlayer {
 
   getPosition(): number { return this.queued ? 0 : this._player.getPosition(); }
 
-  get totalTime(): number { return this._player.totalTime; }
-
-  /* @internal */
+  /** @internal */
   triggerCallback(phaseName: string): void {
     const p = this._player as any;
     if (p.triggerCallback) {

@@ -12,6 +12,8 @@ import {ValueTransformer, visitValue} from '../util';
 import {StaticSymbol, StaticSymbolCache} from './static_symbol';
 import {isGeneratedFile, stripSummaryForJitFileSuffix, stripSummaryForJitNameSuffix, summaryForJitFileName, summaryForJitName} from './util';
 
+const TS = /^(?!.*\.d\.ts$).*\.ts$/;
+
 export class ResolvedStaticSymbol {
   constructor(public symbol: StaticSymbol, public metadata: any) {}
 }
@@ -192,7 +194,7 @@ export class StaticSymbolResolver {
     }
   }
 
-  /* @internal */
+  /** @internal */
   ignoreErrorsFor<T>(cb: () => T) {
     const recorder = this.errorRecorder;
     this.errorRecorder = () => {};
@@ -246,7 +248,7 @@ export class StaticSymbolResolver {
   }
 
   /**
-   * hasDecorators checks a file's metadata for the presense of decorators without evalutating the
+   * hasDecorators checks a file's metadata for the presence of decorators without evaluating the
    * metadata.
    *
    * @param filePath the absolute path to examine for decorators.
@@ -331,7 +333,7 @@ export class StaticSymbolResolver {
     }
 
     // handle the actual metadata. Has to be after the exports
-    // as there migth be collisions in the names, and we want the symbols
+    // as there might be collisions in the names, and we want the symbols
     // of the current module to win ofter reexports.
     if (metadata['metadata']) {
       // handle direct declarations of the symbol
@@ -374,7 +376,8 @@ export class StaticSymbolResolver {
     // (e.g. their constructor parameters).
     // We do this to prevent introducing deep imports
     // as we didn't generate .ngfactory.ts files with proper reexports.
-    if (this.summaryResolver.isLibraryFile(sourceSymbol.filePath) && metadata &&
+    const isTsFile = TS.test(sourceSymbol.filePath);
+    if (this.summaryResolver.isLibraryFile(sourceSymbol.filePath) && !isTsFile && metadata &&
         metadata['__symbolic'] === 'class') {
       const transformedMeta = {__symbolic: 'class', arity: metadata.arity};
       return new ResolvedStaticSymbol(sourceSymbol, transformedMeta);
@@ -383,7 +386,7 @@ export class StaticSymbolResolver {
     let _originalFileMemo: string|undefined;
     const getOriginalName: () => string = () => {
       if (!_originalFileMemo) {
-        // Guess what hte original file name is from the reference. If it has a `.d.ts` extension
+        // Guess what the original file name is from the reference. If it has a `.d.ts` extension
         // replace it with `.ts`. If it already has `.ts` just leave it in place. If it doesn't have
         // .ts or .d.ts, append `.ts'. Also, if it is in `node_modules`, trim the `node_module`
         // location as it is not important to finding the file.

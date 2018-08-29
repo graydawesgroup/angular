@@ -13,10 +13,10 @@ It can also pre-generate pages as HTML files that you serve later.
 This guide describes a Universal sample application that launches quickly as a server-rendered page.
 Meanwhile, the browser downloads the full client version and switches to it automatically after the code loads.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 [Download the finished sample code](generated/zips/universal/universal.zip),
-which runs in a [node express](https://expressjs.com/) server.
+which runs in a [Node.js® Express](https://expressjs.com/) server.
 
 </div>
 
@@ -123,7 +123,7 @@ You'll add more files to support building and serving with Universal.
 
 In this example, the Angular CLI compiles and bundles the Universal version of the app with the
 [AOT (Ahead-of-Time) compiler](guide/aot-compiler).
-A node/express web server turns client requests into the HTML pages rendered by Universal.
+A Node.js® Express web server turns client requests into the HTML pages rendered by Universal.
 
 You will create:
 
@@ -180,7 +180,7 @@ npm install --save @angular/platform-server @nguniversal/module-map-ngfactory-lo
 
 {@a transition}
 
-### Modify the client app
+## Modify the client app
 
 A Universal app can act as a dynamic, content-rich "splash screen" that engages the user.
 It gives the appearance of a near-instant application.
@@ -190,7 +190,9 @@ Once loaded, Angular transitions from the static server-rendered page to the dyn
 
 You must make a few changes to your application code to support both server-side rendering and the transition to the client app.
 
-#### The root `AppModule`
+{@a root-app-module}
+
+### The root `AppModule`
 
 Open file `src/app/app.module.ts` and find the `BrowserModule` import in the `NgModule` metadata.
 Replace that import with this one:
@@ -206,20 +208,40 @@ You can get runtime information about the current platform and the `appId` by in
 <code-example path="universal/src/app/app.module.ts" region="platform-detection" title="src/app/app.module.ts (platform detection)">
 </code-example>
 
+{@a cli-output}
+
+### Build Destination
+
+A Universal app is distributed in two parts: the server-side code that serves up the initial application, and the client-side code that's loaded in dynamically.
+
+The Angular CLI outputs the client-side code in the `dist` directory by default, so you modify the `outputPath` for the __build__ target in the `angular.json` to keep the client-side build outputs separate from the server-side code. The client-side build output will be served by the Express server.
+
+```
+...
+"build": {
+  "builder": "@angular-devkit/build-angular:browser",
+  "options": {
+    "outputPath": "dist/browser",
+    ...
+  }
+}
+...
+```
+
 {@a http-urls}
 
-#### Absolute HTTP URLs
+### Absolute HTTP URLs
 
-The tutorial's `HeroService` and `HeroSearchService` delegate to the Angular `Http` module to fetch application data.
+The tutorial's `HeroService` and `HeroSearchService` delegate to the Angular `HttpClient` module to fetch application data.
 These services send requests to _relative_ URLs such as `api/heroes`.
 
-In a Universal app, `Http` URLs must be _absolute_ (e.g., `https://my-server.com/api/heroes`)
+In a Universal app, HTTP URLs must be _absolute_, for example, `https://my-server.com/api/heroes`
 even when the Universal web server is capable of handling those requests.
 
 You'll have to change the services to make requests with absolute URLs when running on the server
 and with relative URLs when running in the browser.
 
-One solution is to provide the server's runtime origin under the Angular [`APP_BASE_REF` token](api/common/APP_BASE_HREF),
+One solution is to provide the server's runtime origin under the Angular [`APP_BASE_HREF` token](api/common/APP_BASE_HREF),
 inject it into the service, and prepend the origin to the request URL.
 
 Start by changing the `HeroService` constructor to take a second `origin` parameter that is optionally injected via the `APP_BASE_HREF` token.
@@ -231,7 +253,7 @@ Note how the constructor prepends the origin (if it exists) to the `heroesUrl`.
 
 You don't provide `APP_BASE_HREF` in the browser version, so the `heroesUrl` remains relative.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 You can ignore `APP_BASE_HREF` in the browser if you've specified `<base href="/">` in the `index.html`
 to satisfy the router's need for a base address, as the tutorial sample does.
@@ -262,6 +284,19 @@ The `ModuleMapLoaderModule` is a server-side module that allows lazy-loading of 
 
 This is also the place to register providers that are specific to running your app under Universal.
 
+{@a app-server-entry-point}
+
+### App server entry point
+
+The `Angular CLI` uses the `AppServerModule` to build the server-side bundle.
+
+Create a `main.server.ts` file in the `src/` directory that exports the `AppServerModule`:
+
+<code-example path="universal/src/main.server.ts" title="src/main.server.ts">
+</code-example>
+
+The `main.server.ts` will be referenced later to add a `server` target to the `Angular CLI` configuration.
+
 {@a web-server}
 
 ### Universal web server
@@ -274,7 +309,7 @@ It may respond to data requests, perhaps directly or as a proxy to a separate da
 
 The sample web server for _this_ guide is based on the popular [Express](https://expressjs.com/) framework.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   _Any_ web server technology can serve a Universal app as long as it can call Universal's `renderModuleFactory`.
   The principles and decision points discussed below apply to any web server technology that you chose.
@@ -322,7 +357,7 @@ It's up to your engine to decide what to do with that page.
 _This engine's_ promise callback returns the rendered page to the [web server](#web-server),
 which then forwards it to the client in the HTTP response.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   This wrappers are very useful to hide the complexity of the `renderModuleFactory`. There are more wrappers for different backend technologies
   at the [Universal repository](https://github.com/angular/universal).
@@ -357,7 +392,7 @@ You configure the Express server pipeline with calls to `app.get()` like this on
 <code-example path="universal/server.ts" title="server.ts (data URL)" region="data-request" linenums="false">
 </code-example>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 This sample server doesn't handle data requests.
 
@@ -416,10 +451,12 @@ Create a `tsconfig.server.json` file in the project root directory to configure 
 
 This config extends from the root's `tsconfig.json` file. Certain settings are noteworthy for their differences.
 
-* The `module` property must be **commonjs** which can be require()'d into our server application.
+* The `module` property must be **commonjs** which can be required into our server application.
 
 * The `angularCompilerOptions` section guides the AOT compiler:
   * `entryModule` - the root module of the server application, expressed as `path/to/file#ClassName`.
+
+{@a universal-webpack-configuration}
 
 ### Universal Webpack configuration
 
@@ -433,22 +470,47 @@ Create a `webpack.server.config.js` file in the project root directory with the 
 
 **Webpack configuration** is a rich topic beyond the scope of this guide.
 
+{@a universal-cli-configuration}
+
+### Angular CLI configuration
+
+The CLI provides builders for different types of __targets__. Commonly known targets such as `build` and `serve` already exist in the `angular.json` configuration. To target a server-side build, add a `server` target to the `architect` configuration object.
+
+* The `outputPath` tells where the resulting build will be created.
+* The `main` provides the main entry point to the previously created `main.server.ts`
+* The `tsConfig` uses the `tsconfig.server.json` as configuration for the TypeScript and AOT compilation.
+
+```
+"architect": {
+  ...
+  "server": {
+    "builder": "@angular-devkit/build-angular:server",
+    "options": {
+      "outputPath": "dist/server",
+      "main": "src/main.server.ts",
+      "tsConfig": "src/tsconfig.server.json"
+    }
+  }
+  ...
+}
+```
+
 ## Build and run with universal
 
-Now that you've created the TypeScript and Webpack config files, you can build and run the Universal application.
+Now that you've created the TypeScript and Webpack config files and configured the Angular CLI, you can build and run the Universal application.
 
 First add the _build_ and _serve_ commands to the `scripts` section of the `package.json`:
 
-<code-example format="." language="ts">
+```
 "scripts": {
     ...
-    "build:universal": "npm run build:client-and-server-bundles && npm run webpack:server",
-    "serve:universal": "node dist/server.js",
-    "build:client-and-server-bundles": "ng build --prod && ng build --prod --app 1 --output-hashing=false",
+    "build:ssr": "npm run build:client-and-server-bundles && npm run webpack:server",
+    "serve:ssr": "node dist/server",
+    "build:client-and-server-bundles": "ng build --prod && ng run angular.io-example:server",
     "webpack:server": "webpack --config webpack.server.config.js --progress --colors"
     ...
 }
-</code-example>
+```
 
 {@a build}
 
@@ -457,7 +519,7 @@ First add the _build_ and _serve_ commands to the `scripts` section of the `pack
 From the command prompt, type
 
 <code-example format="." language="bash">
-npm run build:universal
+npm run build:ssr
 </code-example>
 
 The Angular CLI compiles and bundles the universal app into two different folders, `browser` and `server`.
@@ -469,7 +531,7 @@ Webpack transpiles the `server.ts` file into Javascript.
 After building the application, start the server.
 
 <code-example format="." language="bash">
-npm run serve:universal
+npm run serve:ssr
 </code-example>
 
 The console window should say

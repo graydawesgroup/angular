@@ -22,7 +22,8 @@ const NOT_SUPPORTED: any = 'NOT_SUPPORTED';
 
 
 export class UpgradeNg1ComponentAdapterBuilder {
-  type: Type<any>;
+  // TODO(issue/24571): remove '!'.
+  type !: Type<any>;
   inputs: string[] = [];
   inputsRename: string[] = [];
   outputs: string[] = [];
@@ -31,7 +32,8 @@ export class UpgradeNg1ComponentAdapterBuilder {
   checkProperties: string[] = [];
   propertyMap: {[name: string]: string} = {};
   directive: angular.IDirective|null = null;
-  template: string;
+  // TODO(issue/24571): remove '!'.
+  template !: string;
 
   constructor(public name: string) {
     const selector =
@@ -43,9 +45,10 @@ export class UpgradeNg1ComponentAdapterBuilder {
     // TODO(tbosch): find or file a bug against TypeScript for this.
     const directive = {selector: selector, inputs: this.inputsRename, outputs: this.outputsRename};
 
-    @Directive(directive)
+    @Directive({jit: true, ...directive})
     class MyClass {
-      directive: angular.IDirective;
+      // TODO(issue/24571): remove '!'.
+      directive !: angular.IDirective;
       constructor(
           @Inject($SCOPE) scope: angular.IScope, injector: Injector, elementRef: ElementRef) {
         const helper = new UpgradeHelper(injector, name, elementRef, this.directive);
@@ -174,8 +177,10 @@ class UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck {
     }
     for (let j = 0; j < outputs.length; j++) {
       const emitter = (this as any)[outputs[j]] = new EventEmitter<any>();
-      this.setComponentProperty(
-          outputs[j], (emitter => (value: any) => emitter.emit(value))(emitter));
+      if (this.propOuts.indexOf(outputs[j]) === -1) {
+        this.setComponentProperty(
+            outputs[j], (emitter => (value: any) => emitter.emit(value))(emitter));
+      }
     }
     for (let k = 0; k < propOuts.length; k++) {
       this.checkLastValues.push(INITIAL_VALUE);
@@ -261,6 +266,8 @@ class UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck {
     if (this.controllerInstance && isFunction(this.controllerInstance.$onDestroy)) {
       this.controllerInstance.$onDestroy();
     }
+
+    this.componentScope.$destroy();
   }
 
   setComponentProperty(name: string, value: any) {

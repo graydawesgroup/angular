@@ -21,11 +21,11 @@ export const modelGroupProvider: any = {
 };
 
 /**
- * @whatItDoes Creates and binds a {@link FormGroup} instance to a DOM element.
+ * @description
  *
- * @howToUse
+ * Creates and binds a `FormGroup` instance to a DOM element.
  *
- * This directive can only be used as a child of {@link NgForm} (or in other words,
+ * This directive can only be used as a child of `NgForm` (or in other words,
  * within `<form>` tags).
  *
  * Use this directive if you'd like to create a sub-group within a form. This can
@@ -43,11 +43,12 @@ export const modelGroupProvider: any = {
  *
  * * **NgModule**: `FormsModule`
  *
- * @stable
+ *
  */
 @Directive({selector: '[ngModelGroup]', providers: [modelGroupProvider], exportAs: 'ngModelGroup'})
 export class NgModelGroup extends AbstractFormGroupDirective implements OnInit, OnDestroy {
-  @Input('ngModelGroup') name: string;
+  // TODO(issue/24571): remove '!'.
+  @Input('ngModelGroup') name !: string;
 
   constructor(
       @Host() @SkipSelf() parent: ControlContainer,

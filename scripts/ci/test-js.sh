@@ -9,7 +9,7 @@ source ${thisDir}/_travis-fold.sh
 
 # Run unit tests for our tools/ directory
 travisFoldStart "test.unit.tools"
-  # TODO(i) could this be rolled into the tools tests above? why is it separate?
+  # TODO(i): could this be rolled into the tools tests above? why is it separate?
   travisFoldStart "test.unit.validate-commit-message"
     (
       cd tools/validate-commit-message
@@ -21,7 +21,7 @@ travisFoldEnd "test.unit.tools"
 
 # Run unit tests in node
 travisFoldStart "test.unit.node"
-  node ./dist/tools/tsc-watch/ node runCmdsOnly
+  node --harmony ./dist/tools/tsc-watch/ node runCmdsOnly
 travisFoldEnd "test.unit.node"
 
 

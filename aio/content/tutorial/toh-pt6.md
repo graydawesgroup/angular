@@ -13,11 +13,18 @@ When you're done with this page, the app should look like this <live-example></l
 
 `HttpClient` is Angular's mechanism for communicating with a remote server over HTTP. 
 
-To make `HttpClient` available everywhere in the app,
+To make `HttpClient` available everywhere in the app:
 
-* open the root `AppModule`, 
-* import the `HttpClientModule` symbol from `@angular/common/http`,
-* add it to the `@NgModule.imports` array.
+* open the root `AppModule` 
+* import the `HttpClientModule` symbol from `@angular/common/http`
+
+<code-example
+  path="toh-pt6/src/app/app.module.ts"
+  region="import-http-client"
+  title="src/app/app.module.ts (Http Client import)">
+</code-example>
+
+* add it to the `@NgModule.imports` array
 
 ## Simulate a data server
 
@@ -49,7 +56,7 @@ Install the *In-memory Web API* package from _npm_
   npm install angular-in-memory-web-api --save
 </code-example>
 
-Import the `InMemoryWebApiModule` and the `InMemoryDataService` class, 
+Import the `HttpClientInMemoryWebApiModule` and the `InMemoryDataService` class, 
 which you will create in a moment.
 
 <code-example 
@@ -58,7 +65,7 @@ which you will create in a moment.
   title="src/app/app.module.ts (In-memory Web API imports)">
 </code-example>
 
-Add the `InMemoryWebApiModule` to the `@NgModule.imports` array&mdash;
+Add the `HttpClientInMemoryWebApiModule` to the `@NgModule.imports` array&mdash;
 _after importing the `HttpClient`_,
 &mdash;while configuring it with the `InMemoryDataService`.
 
@@ -135,7 +142,7 @@ Convert that method to use `HttpClient`
 Refresh the browser. The hero data should successfully load from the
 mock server.
 
-You've swapped `http.get` for `of` and the app keeps working without any other changes
+You've swapped `of` for `http.get` and the app keeps working without any other changes
 because both functions return an `Observable<Hero[]>`.
 
 ### Http methods return one value
@@ -145,8 +152,8 @@ All `HttpClient` methods return an RxJS `Observable` of something.
 HTTP is a request/response protocol. 
 You make a request, it returns a single response.
 
-In general, an `Observable` _can_ return multiple values over time.
-An `Observable` from `HttpClient` always emits a single value and then completes, never to emit again.
+In general, an observable _can_ return multiple values over time.
+An observable from `HttpClient` always emits a single value and then completes, never to emit again.
 
 This particular `HttpClient.get` call returns an `Observable<Hero[]>`, literally "_an observable of hero arrays_". In practice, it will only return a single hero array.
 
@@ -158,7 +165,7 @@ Applying the optional type specifier, `<Hero[]>` , gives you a typed result obje
 The shape of the JSON data is determined by the server's data API.
 The _Tour of Heroes_ data API returns the hero data as an array.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 Other APIs may bury the data that you want within an object.
 You might have to dig that data out by processing the `Observable` result
@@ -250,7 +257,7 @@ There are three significant differences from  `getHeroes()`.
 
 ## Update heroes
 
-Editing a hero's name in the _hero detail_ view.
+Edit a hero's name in the _hero detail_ view.
 As you type, the hero name updates the heading at the top of the page.
 But when you click the "go back button", the changes are lost.
 
@@ -287,15 +294,15 @@ The `HttpClient.put()` method takes three parameters
 The URL is unchanged. The heroes web API knows which hero to update by looking at the hero's `id`.
 
 The heroes web API expects a special header in HTTP save requests.
-That header is in the `httpOption` constant defined in the `HeroService`.
+That header is in the `httpOptions` constant defined in the `HeroService`.
 
 <code-example 
   path="toh-pt6/src/app/hero.service.ts" 
-  region="http-options">
+  region="http-options"
+  title="src/app/hero.service.ts">
 </code-example>
 
-Refresh the browser, change a hero name, save your change,
-and click the "go back" button. 
+Refresh the browser, change a hero name and save your change. Navigating to the previous view is implemented in the `save()` method defined in `HeroDetailComponent`.
 The hero now appears in the list with the changed name.
 
 ## Add a new hero
@@ -440,7 +447,7 @@ Create a `HeroSearchComponent` with the CLI.
   ng generate component hero-search
 </code-example>
 
-The CLI generates the three `HeroSearchComponent` and adds the component to the `AppModule' declarations
+The CLI generates the three `HeroSearchComponent` files and adds the component to the `AppModule` declarations
 
 Replace the generated `HeroSearchComponent` _template_ with a text box and a list of matching search results like this.
 
@@ -513,8 +520,8 @@ The `searchTerms` becomes an `Observable` emitting a steady stream of search ter
 Passing a new search term directly to the `searchHeroes()` after every user keystroke would create an excessive amount of HTTP requests,
 taxing server resources and burning through the cellular network data plan.
 
-Instead, the `ngOnInit()` method pipes the `searchTerms` _observable_  through a sequence of RxJS operators that reduce the number of calls to the `searchHeroes()`,
-ultimately returning an _observable_ of timely hero search results (each a `Hero[]`).
+Instead, the `ngOnInit()` method pipes the `searchTerms` observable through a sequence of RxJS operators that reduce the number of calls to the `searchHeroes()`,
+ultimately returning an observable of timely hero search results (each a `Hero[]`).
 
 Here's the code.
 
@@ -529,14 +536,14 @@ Here's the code.
 before passing along the latest string. You'll never make requests more frequently than 300ms.
 
 
-* `distinctUntilChanged` ensures that a request is sent only if the filter text changed.
+* `distinctUntilChanged()` ensures that a request is sent only if the filter text changed.
 
 
 * `switchMap()` calls the search service for each search term that makes it through `debounce` and `distinctUntilChanged`.
 It cancels and discards previous search observables, returning only the latest search service observable.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   With the [switchMap operator](http://www.learnrxjs.io/operators/transformation/switchmap.html),
   every qualifying key event can trigger an `HttpClient.get()` method call.
@@ -648,7 +655,7 @@ You're at the end of your journey, and you've accomplished a lot.
 * You extended `HeroService` to support `post()`, `put()`, and `delete()` methods.
 * You updated the components to allow adding, editing, and deleting of heroes.
 * You configured an in-memory web API.
-* You learned how to use Observables.
+* You learned how to use observables.
 
 This concludes the "Tour of Heroes" tutorial.
 You're ready to learn more about Angular development in the fundamentals section,

@@ -19,6 +19,7 @@ export class AnimationRendererFactory implements RendererFactory2 {
   private _animationCallbacksBuffer: [(e: any) => any, any][] = [];
   private _rendererCache = new Map<Renderer2, BaseAnimationRenderer>();
   private _cdRecurDepth = 0;
+  private promise: Promise<any> = Promise.resolve(0);
 
   constructor(
       private delegate: RendererFactory2, private engine: AnimationEngine, private _zone: NgZone) {
@@ -69,10 +70,11 @@ export class AnimationRendererFactory implements RendererFactory2 {
   }
 
   private _scheduleCountTask() {
-    Zone.current.scheduleMicroTask('incremenet the animation microtask', () => this._microtaskId++);
+    // always use promise to schedule microtask instead of use Zone
+    this.promise.then(() => { this._microtaskId++; });
   }
 
-  /* @internal */
+  /** @internal */
   scheduleListenerCallback(count: number, fn: (e: any) => any, data: any) {
     if (count >= 0 && count < this._microtaskId) {
       this._zone.run(() => fn(data));

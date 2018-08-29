@@ -10,6 +10,19 @@ import {AUTO_STYLE, AnimationEvent, AnimationPlayer, NoopAnimationPlayer, ɵAnim
 import {AnimationStyleNormalizer} from '../../src/dsl/style_normalization/animation_style_normalizer';
 import {AnimationDriver} from '../../src/render/animation_driver';
 
+// We don't include ambient node types here since @angular/animations/browser
+// is meant to target the browser so technically it should not depend on node
+// types. `process` is just declared locally here as a result.
+declare const process: any;
+
+export function isBrowser() {
+  return (typeof window !== 'undefined' && typeof window.document !== 'undefined');
+}
+
+export function isNode() {
+  return (typeof process !== 'undefined');
+}
+
 export function optimizeGroupPlayer(players: AnimationPlayer[]): AnimationPlayer {
   switch (players.length) {
     case 0:
@@ -75,23 +88,24 @@ export function listenOnPlayer(
     callback: (event: any) => any) {
   switch (eventName) {
     case 'start':
-      player.onStart(() => callback(event && copyAnimationEvent(event, 'start', player.totalTime)));
+      player.onStart(() => callback(event && copyAnimationEvent(event, 'start', player)));
       break;
     case 'done':
-      player.onDone(() => callback(event && copyAnimationEvent(event, 'done', player.totalTime)));
+      player.onDone(() => callback(event && copyAnimationEvent(event, 'done', player)));
       break;
     case 'destroy':
-      player.onDestroy(
-          () => callback(event && copyAnimationEvent(event, 'destroy', player.totalTime)));
+      player.onDestroy(() => callback(event && copyAnimationEvent(event, 'destroy', player)));
       break;
   }
 }
 
 export function copyAnimationEvent(
-    e: AnimationEvent, phaseName?: string, totalTime?: number): AnimationEvent {
+    e: AnimationEvent, phaseName: string, player: AnimationPlayer): AnimationEvent {
+  const totalTime = player.totalTime;
+  const disabled = (player as any).disabled ? true : false;
   const event = makeAnimationEvent(
       e.element, e.triggerName, e.fromState, e.toState, phaseName || e.phaseName,
-      totalTime == undefined ? e.totalTime : totalTime);
+      totalTime == undefined ? e.totalTime : totalTime, disabled);
   const data = (e as any)['_data'];
   if (data != null) {
     (event as any)['_data'] = data;
@@ -101,8 +115,8 @@ export function copyAnimationEvent(
 
 export function makeAnimationEvent(
     element: any, triggerName: string, fromState: string, toState: string, phaseName: string = '',
-    totalTime: number = 0): AnimationEvent {
-  return {element, triggerName, fromState, toState, phaseName, totalTime};
+    totalTime: number = 0, disabled?: boolean): AnimationEvent {
+  return {element, triggerName, fromState, toState, phaseName, totalTime, disabled: !!disabled};
 }
 
 export function getOrSetAsInMap(
@@ -137,11 +151,14 @@ let _query: (element: any, selector: string, multi: boolean) => any[] =
       return [];
     };
 
-if (typeof Element != 'undefined') {
+// Define utility methods for browsers and platform-server(domino) where Element
+// and utility methods exist.
+const _isNode = isNode();
+if (_isNode || typeof Element !== 'undefined') {
   // this is well supported in all browsers
   _contains = (elm1: any, elm2: any) => { return elm1.contains(elm2) as boolean; };
 
-  if (Element.prototype.matches) {
+  if (_isNode || Element.prototype.matches) {
     _matches = (element: any, selector: string) => element.matches(selector);
   } else {
     const proto = Element.prototype as any;
@@ -202,3 +219,12 @@ export function getBodyNode(): any|null {
 export const matchesElement = _matches;
 export const containsElement = _contains;
 export const invokeQuery = _query;
+
+export function hypenatePropsObject(object: {[key: string]: any}): {[key: string]: any} {
+  const newObj: {[key: string]: any} = {};
+  Object.keys(object).forEach(prop => {
+    const newProp = prop.replace(/([a-z])([A-Z])/g, '$1-$2');
+    newObj[newProp] = object[prop];
+  });
+  return newObj;
+}

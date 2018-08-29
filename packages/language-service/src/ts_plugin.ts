@@ -21,72 +21,13 @@ export function getExternalFiles(project: any): string[]|undefined {
   }
 }
 
-const angularOnlyResults = process.argv.indexOf('--angularOnlyResults') >= 0;
-
-function angularOnlyFilter(ls: ts.LanguageService): ts.LanguageService {
-  return {
-    cleanupSemanticCache: () => ls.cleanupSemanticCache(),
-    getSyntacticDiagnostics: fileName => <ts.Diagnostic[]>[],
-    getSemanticDiagnostics: fileName => <ts.Diagnostic[]>[],
-    getCompilerOptionsDiagnostics: () => <ts.Diagnostic[]>[],
-    getSyntacticClassifications: (fileName, span) => [],
-    getSemanticClassifications: (fileName, span) => [],
-    getEncodedSyntacticClassifications: (fileName, span) => <ts.Classifications><any>{undefined},
-    getEncodedSemanticClassifications: (fileName, span) => <ts.Classifications><any>undefined,
-    getCompletionsAtPosition: (fileName, position) => <ts.CompletionInfo><any>undefined,
-    getCompletionEntryDetails: (fileName, position, entryName) =>
-                                   <ts.CompletionEntryDetails><any>undefined,
-    getCompletionEntrySymbol: (fileName, position, entryName) => <ts.Symbol><any>undefined,
-    getQuickInfoAtPosition: (fileName, position) => <ts.QuickInfo><any>undefined,
-    getNameOrDottedNameSpan: (fileName, startPos, endPos) => <ts.TextSpan><any>undefined,
-    getBreakpointStatementAtPosition: (fileName, position) => <ts.TextSpan><any>undefined,
-    getSignatureHelpItems: (fileName, position) => <ts.SignatureHelpItems><any>undefined,
-    getRenameInfo: (fileName, position) => <ts.RenameInfo><any>undefined,
-    findRenameLocations: (fileName, position, findInStrings, findInComments) =>
-                             <ts.RenameLocation[]>[],
-    getDefinitionAtPosition: (fileName, position) => <ts.DefinitionInfo[]>[],
-    getTypeDefinitionAtPosition: (fileName, position) => <ts.DefinitionInfo[]>[],
-    getImplementationAtPosition: (fileName, position) => <ts.ImplementationLocation[]>[],
-    getReferencesAtPosition: (fileName: string, position: number) => <ts.ReferenceEntry[]>[],
-    findReferences: (fileName: string, position: number) => <ts.ReferencedSymbol[]>[],
-    getDocumentHighlights: (fileName, position, filesToSearch) => <ts.DocumentHighlights[]>[],
-    /** @deprecated */
-    getOccurrencesAtPosition: (fileName, position) => <ts.ReferenceEntry[]>[],
-    getNavigateToItems: searchValue => <ts.NavigateToItem[]>[],
-    getNavigationBarItems: fileName => <ts.NavigationBarItem[]>[],
-    getNavigationTree: fileName => <ts.NavigationTree><any>undefined,
-    getOutliningSpans: fileName => <ts.OutliningSpan[]>[],
-    getTodoComments: (fileName, descriptors) => <ts.TodoComment[]>[],
-    getBraceMatchingAtPosition: (fileName, position) => <ts.TextSpan[]>[],
-    getIndentationAtPosition: (fileName, position, options) => <number><any>undefined,
-    getFormattingEditsForRange: (fileName, start, end, options) => <ts.TextChange[]>[],
-    getFormattingEditsForDocument: (fileName, options) => <ts.TextChange[]>[],
-    getFormattingEditsAfterKeystroke: (fileName, position, key, options) => <ts.TextChange[]>[],
-    getDocCommentTemplateAtPosition: (fileName, position) => <ts.TextInsertion><any>undefined,
-    isValidBraceCompletionAtPosition: (fileName, position, openingBrace) => <boolean><any>undefined,
-    getSpanOfEnclosingComment: (fileName, position, onlyMultiLine) => <ts.TextSpan><any>undefined,
-    getCodeFixesAtPosition: (fileName, start, end, errorCodes) => <ts.CodeAction[]>[],
-    applyCodeActionCommand: (action: any) => <any>Promise.resolve(undefined),
-    getEmitOutput: fileName => <ts.EmitOutput><any>undefined,
-    getProgram: () => ls.getProgram(),
-    dispose: () => ls.dispose(),
-    getApplicableRefactors: (fileName, positionOrRaneg) => <ts.ApplicableRefactorInfo[]>[],
-    getEditsForRefactor: (fileName, formatOptions, positionOrRange, refactorName, actionName) =>
-                             undefined
-  };
-}
-
 export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageService {
   // Create the proxy
   const proxy: ts.LanguageService = Object.create(null);
   let oldLS: ts.LanguageService = info.languageService;
 
-  if (angularOnlyResults) {
-    oldLS = angularOnlyFilter(oldLS);
-  }
-
   function tryCall<T>(fileName: string | undefined, callback: () => T): T {
-    if (fileName && !oldLS.getProgram().getSourceFile(fileName)) {
+    if (fileName && !oldLS.getProgram() !.getSourceFile(fileName)) {
       return undefined as any as T;
     }
     try {
@@ -122,8 +63,16 @@ export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageS
                tryCall(fileName, () => <T>(m.call(ls, fileName, p1, p2, p3, p4)));
   }
 
+  function tryFilenameFiveCall<T, P1, P2, P3, P4, P5>(
+      m: (fileName: string, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) =>
+          T): (fileName: string, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => T {
+    return (fileName, p1, p2, p3, p4, p5) =>
+               tryCall(fileName, () => <T>(m.call(ls, fileName, p1, p2, p3, p4, p5)));
+  }
+
+
   function typescriptOnly(ls: ts.LanguageService): ts.LanguageService {
-    return {
+    const languageService: ts.LanguageService = {
       cleanupSemanticCache: () => ls.cleanupSemanticCache(),
       getSyntacticDiagnostics: tryFilenameCall(ls.getSyntacticDiagnostics),
       getSemanticDiagnostics: tryFilenameCall(ls.getSemanticDiagnostics),
@@ -133,12 +82,13 @@ export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageS
       getEncodedSyntacticClassifications: tryFilenameOneCall(ls.getEncodedSyntacticClassifications),
       getEncodedSemanticClassifications: tryFilenameOneCall(ls.getEncodedSemanticClassifications),
       getCompletionsAtPosition: tryFilenameTwoCall(ls.getCompletionsAtPosition),
-      getCompletionEntryDetails: tryFilenameFourCall(ls.getCompletionEntryDetails),
+      getCompletionEntryDetails: tryFilenameFiveCall(ls.getCompletionEntryDetails),
       getCompletionEntrySymbol: tryFilenameThreeCall(ls.getCompletionEntrySymbol),
+      getJsxClosingTagAtPosition: tryFilenameOneCall(ls.getJsxClosingTagAtPosition),
       getQuickInfoAtPosition: tryFilenameOneCall(ls.getQuickInfoAtPosition),
       getNameOrDottedNameSpan: tryFilenameTwoCall(ls.getNameOrDottedNameSpan),
       getBreakpointStatementAtPosition: tryFilenameOneCall(ls.getBreakpointStatementAtPosition),
-      getSignatureHelpItems: tryFilenameOneCall(ls.getSignatureHelpItems),
+      getSignatureHelpItems: tryFilenameTwoCall(ls.getSignatureHelpItems),
       getRenameInfo: tryFilenameOneCall(ls.getRenameInfo),
       findRenameLocations: tryFilenameThreeCall(ls.findRenameLocations),
       getDefinitionAtPosition: tryFilenameOneCall(ls.getDefinitionAtPosition),
@@ -165,15 +115,30 @@ export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageS
       getDocCommentTemplateAtPosition: tryFilenameOneCall(ls.getDocCommentTemplateAtPosition),
       isValidBraceCompletionAtPosition: tryFilenameTwoCall(ls.isValidBraceCompletionAtPosition),
       getSpanOfEnclosingComment: tryFilenameTwoCall(ls.getSpanOfEnclosingComment),
-      getCodeFixesAtPosition: tryFilenameFourCall(ls.getCodeFixesAtPosition),
+      getCodeFixesAtPosition: tryFilenameFiveCall(ls.getCodeFixesAtPosition),
       applyCodeActionCommand:
           <any>((action: any) => tryCall(undefined, () => ls.applyCodeActionCommand(action))),
       getEmitOutput: tryFilenameCall(ls.getEmitOutput),
       getProgram: () => ls.getProgram(),
       dispose: () => ls.dispose(),
-      getApplicableRefactors: tryFilenameOneCall(ls.getApplicableRefactors),
-      getEditsForRefactor: tryFilenameFourCall(ls.getEditsForRefactor)
-    };
+      getApplicableRefactors: tryFilenameTwoCall(ls.getApplicableRefactors),
+      getEditsForRefactor: tryFilenameFiveCall(ls.getEditsForRefactor),
+      getDefinitionAndBoundSpan: tryFilenameOneCall(ls.getDefinitionAndBoundSpan),
+      getCombinedCodeFix:
+          (scope: ts.CombinedCodeFixScope, fixId: {}, formatOptions: ts.FormatCodeSettings,
+           preferences: ts.UserPreferences) =>
+              tryCall(
+                  undefined, () => ls.getCombinedCodeFix(scope, fixId, formatOptions, preferences)),
+      // TODO(kyliau): dummy implementation to compile with ts 2.8, create real one
+      getSuggestionDiagnostics: (fileName: string) => [],
+      // TODO(kyliau): dummy implementation to compile with ts 2.8, create real one
+      organizeImports: (scope: ts.CombinedCodeFixScope, formatOptions: ts.FormatCodeSettings) => [],
+      // TODO: dummy implementation to compile with ts 2.9, create a real one
+      getEditsForFileRename:
+          (oldFilePath: string, newFilePath: string, formatOptions: ts.FormatCodeSettings,
+           preferences: ts.UserPreferences | undefined) => []
+    } as ts.LanguageService;
+    return languageService;
   }
 
   oldLS = typescriptOnly(oldLS);
@@ -265,32 +230,33 @@ export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageS
     return base;
   };
 
-  proxy.getQuickInfoAtPosition = function(fileName: string, position: number): ts.QuickInfo {
-    let base = oldLS.getQuickInfoAtPosition(fileName, position);
-    // TODO(vicb): the tags property has been removed in TS 2.2
-    tryOperation('get quick info', () => {
-      const ours = ls.getHoverAt(fileName, position);
-      if (ours) {
-        const displayParts: ts.SymbolDisplayPart[] = [];
-        for (const part of ours.text) {
-          displayParts.push({kind: part.language || 'angular', text: part.text});
-        }
-        const tags = base && (<any>base).tags;
-        base = <any>{
-          displayParts,
-          documentation: [],
-          kind: 'angular',
-          kindModifiers: 'what does this do?',
-          textSpan: {start: ours.span.start, length: ours.span.end - ours.span.start},
-        };
-        if (tags) {
-          (<any>base).tags = tags;
-        }
-      }
-    });
+  proxy.getQuickInfoAtPosition = function(fileName: string, position: number): ts.QuickInfo |
+      undefined {
+        let base = oldLS.getQuickInfoAtPosition(fileName, position);
+        // TODO(vicb): the tags property has been removed in TS 2.2
+        tryOperation('get quick info', () => {
+          const ours = ls.getHoverAt(fileName, position);
+          if (ours) {
+            const displayParts: ts.SymbolDisplayPart[] = [];
+            for (const part of ours.text) {
+              displayParts.push({kind: part.language || 'angular', text: part.text});
+            }
+            const tags = base && (<any>base).tags;
+            base = <any>{
+              displayParts,
+              documentation: [],
+              kind: 'angular',
+              kindModifiers: 'what does this do?',
+              textSpan: {start: ours.span.start, length: ours.span.end - ours.span.start},
+            };
+            if (tags) {
+              (<any>base).tags = tags;
+            }
+          }
+        });
 
-    return base;
-  };
+        return base;
+      };
 
   proxy.getSemanticDiagnostics = function(fileName: string) {
     let result = oldLS.getSemanticDiagnostics(fileName);
@@ -299,8 +265,10 @@ export function create(info: any /* ts.server.PluginCreateInfo */): ts.LanguageS
       info.project.projectService.logger.info(`Computing Angular semantic diagnostics...`);
       const ours = ls.getDiagnostics(fileName);
       if (ours && ours.length) {
-        const file = oldLS.getProgram().getSourceFile(fileName);
-        base.push.apply(base, ours.map(d => diagnosticToDiagnostic(d, file)));
+        const file = oldLS.getProgram() !.getSourceFile(fileName);
+        if (file) {
+          base.push.apply(base, ours.map(d => diagnosticToDiagnostic(d, file)));
+        }
       }
     });
 

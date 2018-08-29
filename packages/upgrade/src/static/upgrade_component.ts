@@ -27,26 +27,29 @@ class Bindings {
 }
 
 /**
- * @whatItDoes
+ * @description
+ *
+ * A helper class that allows an AngularJS component to be used from Angular.
  *
  * *Part of the [upgrade/static](api?query=upgrade%2Fstatic)
  * library for hybrid upgrade apps that support AoT compilation*
  *
- * Allows an AngularJS component to be used from Angular.
+ * This helper class should be used as a base class for creating Angular directives
+ * that wrap AngularJS components that need to be "upgraded".
  *
- * @howToUse
+ * ### Examples
  *
  * Let's assume that you have an AngularJS component called `ng1Hero` that needs
  * to be made available in Angular templates.
  *
- * {@example upgrade/static/ts/module.ts region="ng1-hero"}
+ * {@example upgrade/static/ts/full/module.ts region="ng1-hero"}
  *
- * We must create a {@link Directive} that will make this AngularJS component
+ * We must create a `Directive` that will make this AngularJS component
  * available inside Angular templates.
  *
- * {@example upgrade/static/ts/module.ts region="ng1-hero-wrapper"}
+ * {@example upgrade/static/ts/full/module.ts region="ng1-hero-wrapper"}
  *
- * In this example you can see that we must derive from the {@link UpgradeComponent}
+ * In this example you can see that we must derive from the `UpgradeComponent`
  * base class but also provide an {@link Directive `@Directive`} decorator. This is
  * because the AoT compiler requires that this information is statically available at
  * compile time.
@@ -57,12 +60,7 @@ class Bindings {
  * * derive from `UpgradeComponent`
  * * call the base class from the constructor, passing
  *   * the AngularJS name of the component (`ng1Hero`)
- *   * the {@link ElementRef} and {@link Injector} for the component wrapper
- *
- * @description
- *
- * A helper class that should be used as a base class for creating Angular directives
- * that wrap AngularJS components that need to be "upgraded".
+ *   * the `ElementRef` and `Injector` for the component wrapper
  *
  * @experimental
  */
@@ -78,30 +76,30 @@ export class UpgradeComponent implements OnInit, OnChanges, DoCheck, OnDestroy {
   private directive: angular.IDirective;
   private bindings: Bindings;
 
-  private controllerInstance: IControllerInstance;
-  private bindingDestination: IBindingDestination;
+  // TODO(issue/24571): remove '!'.
+  private controllerInstance !: IControllerInstance;
+  // TODO(issue/24571): remove '!'.
+  private bindingDestination !: IBindingDestination;
 
-  // We will be instantiating the controller in the `ngOnInit` hook, when the first `ngOnChanges`
-  // will have been already triggered. We store the `SimpleChanges` and "play them back" later.
-  private pendingChanges: SimpleChanges|null;
+  // We will be instantiating the controller in the `ngOnInit` hook, when the
+  // first `ngOnChanges` will have been already triggered. We store the
+  // `SimpleChanges` and "play them back" later.
+  // TODO(issue/24571): remove '!'.
+  private pendingChanges !: SimpleChanges | null;
 
-  private unregisterDoCheckWatcher: Function;
+  // TODO(issue/24571): remove '!'.
+  private unregisterDoCheckWatcher !: Function;
 
   /**
    * Create a new `UpgradeComponent` instance. You should not normally need to do this.
    * Instead you should derive a new class from this one and call the super constructor
    * from the base class.
    *
-   * {@example upgrade/static/ts/module.ts region="ng1-hero-wrapper" }
+   * {@example upgrade/static/ts/full/module.ts region="ng1-hero-wrapper" }
    *
    * * The `name` parameter should be the name of the AngularJS directive.
    * * The `elementRef` and `injector` parameters should be acquired from Angular by dependency
    *   injection into the base class constructor.
-   *
-   * Note that we must manually implement lifecycle hooks that call through to the super class.
-   * This is because, at the moment, the AoT compiler is not able to tell that the
-   * `UpgradeComponent`
-   * already implements them and so does not wire up calls to them at runtime.
    */
   constructor(private name: string, private elementRef: ElementRef, private injector: Injector) {
     this.helper = new UpgradeHelper(injector, name, elementRef);

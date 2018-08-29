@@ -7,6 +7,7 @@
  */
 
 export class MockBody implements Body {
+  readonly body !: ReadableStream;
   bodyUsed: boolean = false;
 
   constructor(public _body: string|null) {}
@@ -80,6 +81,9 @@ export class MockHeaders implements Headers {
 }
 
 export class MockRequest extends MockBody implements Request {
+  readonly isHistoryNavigation: boolean = false;
+  readonly isReloadNavigation: boolean = false;
+  readonly body !: ReadableStream;
   readonly cache: RequestCache = 'default';
   readonly credentials: RequestCredentials = 'omit';
   readonly destination: RequestDestination = 'document';
@@ -91,11 +95,12 @@ export class MockRequest extends MockBody implements Request {
   readonly redirect: RequestRedirect = 'error';
   readonly referrer: string = '';
   readonly referrerPolicy: ReferrerPolicy = 'no-referrer';
-  readonly type: RequestType = '';
+  readonly signal: AbortSignal = null as any;
+
   url: string;
 
   constructor(input: string|Request, init: RequestInit = {}) {
-    super(init !== undefined ? init.body || null : null);
+    super(init !== undefined ? (init.body as(string | null)) || null : null);
     if (typeof input !== 'string') {
       throw 'Not implemented';
     }
@@ -107,6 +112,9 @@ export class MockRequest extends MockBody implements Request {
       } else {
         Object.keys(headers).forEach(header => { this.headers.set(header, headers[header]); });
       }
+    }
+    if (init.cache !== undefined) {
+      this.cache = init.cache;
     }
     if (init.mode !== undefined) {
       this.mode = init.mode;
@@ -127,13 +135,13 @@ export class MockRequest extends MockBody implements Request {
 }
 
 export class MockResponse extends MockBody implements Response {
+  readonly trailer: Promise<Headers> = Promise.resolve(new MockHeaders());
   readonly headers: Headers = new MockHeaders();
   get ok(): boolean { return this.status >= 200 && this.status < 300; }
   readonly status: number;
   readonly statusText: string;
   readonly type: ResponseType = 'basic';
   readonly url: string = '';
-  readonly body: ReadableStream|null = null;
   readonly redirected: boolean = false;
 
   constructor(

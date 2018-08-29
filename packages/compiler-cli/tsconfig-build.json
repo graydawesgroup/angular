@@ -4,13 +4,19 @@
   "compilerOptions": {
     "module": "commonjs",
     "stripInternal": false,
-    "target": "es5",
+    "target": "es2015",
+    "lib": [
+      "es2015"
+    ],
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
       "@angular/compiler": ["../../dist/packages/compiler"]
     },
     "outDir": "../../dist/packages/compiler-cli"
+  },
+  "bazelOptions": {
+    "suppressTsconfigOverrideWarnings": true
   },
 
   "exclude": [

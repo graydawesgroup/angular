@@ -88,7 +88,7 @@ you apply the directive to an element in the HTML template.
 
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -297,7 +297,7 @@ These properties include `index` and `odd` and a special property named `$implic
 Angular sets them to the current value of the context's `index` and `odd` properties.
 
 * The context property for `let-hero` wasn't specified.
-It's intended source is implicit.
+Its intended source is implicit.
 Angular sets `let-hero` to the value of the context's `$implicit` property
 which `NgFor` has initialized with the hero for the current iteration.
 
@@ -392,7 +392,7 @@ An `NgSwitchCase` displays its host element when its value matches the switch va
 The `NgSwitchDefault` displays its host element when no sibling `NgSwitchCase` matches the switch value.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -691,7 +691,7 @@ The directive consumer expects to bind a true/false condition to `[appUnless]`.
 That means the directive needs an `appUnless` property, decorated with `@Input`
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 

@@ -6,9 +6,6 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-// Import zero symbols from zone.js. This causes the zone ambient type to be
-// added to the type-checker, without emitting any runtime module load statement
-import {} from 'zone.js';
 import {EventEmitter} from '../event_emitter';
 
 /**
@@ -24,6 +21,7 @@ import {EventEmitter} from '../event_emitter';
  *   - link to runOutsideAngular/run (throughout this file!)
  *   -->
  *
+ * @usageNotes
  * ### Example
  *
  * ```
@@ -130,6 +128,10 @@ export class NgZone {
 
     if ((Zone as any)['wtfZoneSpec']) {
       self._inner = self._inner.fork((Zone as any)['wtfZoneSpec']);
+    }
+
+    if ((Zone as any)['TaskTrackingZoneSpec']) {
+      self._inner = self._inner.fork(new ((Zone as any)['TaskTrackingZoneSpec'] as any));
     }
 
     if (enableLongStackTrace && (Zone as any)['longStackTraceZoneSpec']) {

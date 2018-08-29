@@ -9,7 +9,7 @@
 import {LocationChangeEvent, LocationChangeListener, PlatformLocation} from '@angular/common';
 import {Inject, Injectable, Optional} from '@angular/core';
 import {DOCUMENT, ɵgetDOM as getDOM} from '@angular/platform-browser';
-import {Subject} from 'rxjs/Subject';
+import {Subject} from 'rxjs';
 import * as url from 'url';
 import {INITIAL_CONFIG, PlatformConfig} from './tokens';
 
@@ -63,8 +63,9 @@ export class ServerPlatformLocation implements PlatformLocation {
     }
     (this as{hash: string}).hash = value;
     const newUrl = this.url;
-    scheduleMicroTask(
-        () => this._hashUpdate.next({ type: 'hashchange', oldUrl, newUrl } as LocationChangeEvent));
+    scheduleMicroTask(() => this._hashUpdate.next({
+      type: 'hashchange', state: null, oldUrl, newUrl
+    } as LocationChangeEvent));
   }
 
   replaceState(state: any, title: string, newUrl: string): void {

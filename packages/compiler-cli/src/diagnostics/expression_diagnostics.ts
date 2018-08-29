@@ -185,7 +185,8 @@ export function getExpressionScope(
 
 class ExpressionDiagnosticsVisitor extends RecursiveTemplateAstVisitor {
   private path: TemplateAstPath;
-  private directiveSummary: CompileDirectiveSummary;
+  // TODO(issue/24571): remove '!'.
+  private directiveSummary !: CompileDirectiveSummary;
 
   diagnostics: ExpressionDiagnostic[] = [];
 
@@ -255,7 +256,7 @@ class ExpressionDiagnosticsVisitor extends RecursiveTemplateAstVisitor {
 
     this.push(ast);
 
-    // Find directive that refernces this template
+    // Find directive that references this template
     this.directiveSummary =
         ast.directives.map(d => d.directive).find(d => hasTemplateReference(d.type)) !;
 

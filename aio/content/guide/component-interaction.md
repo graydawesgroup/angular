@@ -61,7 +61,7 @@ The running application displays three heroes:
 E2E test that all children were instantiated and displayed as expected:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="parent-to-child" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="parent-to-child" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 
@@ -105,7 +105,7 @@ Here's the `NameParentComponent` demonstrating name variations including a name 
 E2E tests of input property setter with empty and non-empty names:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="parent-to-child-setter" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="parent-to-child-setter" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 
@@ -119,7 +119,7 @@ E2E tests of input property setter with empty and non-empty names:
 
 Detect and act upon changes to input property values with the `ngOnChanges()` method of the `OnChanges` lifecycle hook interface.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -164,7 +164,7 @@ Test that ***both*** input properties are set initially and that button clicks t
 the expected `ngOnChanges` calls and values:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="parent-to-child-onchanges" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="parent-to-child-onchanges" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 
@@ -217,7 +217,7 @@ and the method processes it:
 Test that clicking the *Agree* and *Disagree* buttons update the appropriate counters:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="child-to-parent" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="child-to-parent" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 
@@ -284,7 +284,7 @@ match the seconds displayed in the child's status message.
 Test also that clicking the *Stop* button pauses the countdown timer:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="countdown-timer-tests" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="countdown-timer-tests" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 
@@ -311,7 +311,7 @@ The following example illustrates this technique with the same
 Neither its appearance nor its behavior will change.
 The child [CountdownTimerComponent](guide/component-interaction#countdown-timer-example) is the same as well.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -400,7 +400,7 @@ Each `AstronautComponent` is a child of the `MissionControlComponent` and theref
 
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -433,7 +433,7 @@ Tests click buttons of both the parent `MissionControlComponent` and the `Astron
 and verify that the history meets expectations:
 
 
-<code-example path="component-interaction/e2e/app.e2e-spec.ts" region="bidirectional-service" title="component-interaction/e2e/app.e2e-spec.ts">
+<code-example path="component-interaction/e2e/src/app.e2e-spec.ts" region="bidirectional-service" title="component-interaction/e2e/src/app.e2e-spec.ts">
 
 </code-example>
 

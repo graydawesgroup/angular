@@ -6,8 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {C, E, T, V, cR, cr, defineComponent, e, v} from '../../src/render3/index';
-
+import {defineComponent} from '../../src/render3/index';
+import {container, containerRefreshEnd, containerRefreshStart, elementEnd, elementStart, embeddedViewEnd, embeddedViewStart, text} from '../../src/render3/instructions';
+import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {document, renderComponent} from './render_util';
 
 describe('iv perf test', () => {
@@ -32,26 +33,31 @@ describe('iv perf test', () => {
       it(`${iteration}. create ${count} divs in Render3`, () => {
         class Component {
           static ngComponentDef = defineComponent({
-            tag: 'div',
-            template: function Template(ctx: any, cm: any) {
-              if (cm) {
-                C(0);
+            type: Component,
+            selectors: [['div']],
+            consts: 1,
+            vars: 0,
+            template: function Template(rf: RenderFlags, ctx: any) {
+              if (rf & RenderFlags.Create) {
+                container(0);
               }
-              cR(0);
-              {
-                for (let i = 0; i < count; i++) {
-                  let cm0 = V(0);
-                  {
-                    if (cm0) {
-                      E(0, 'div');
-                      T(1, '-');
-                      e();
+              if (rf & RenderFlags.Update) {
+                containerRefreshStart(0);
+                {
+                  for (let i = 0; i < count; i++) {
+                    let rf0 = embeddedViewStart(0, 2, 0);
+                    {
+                      if (rf0 & RenderFlags.Create) {
+                        elementStart(0, 'div');
+                        text(1, '-');
+                        elementEnd();
+                      }
                     }
+                    embeddedViewEnd();
                   }
-                  v();
                 }
+                containerRefreshEnd();
               }
-              cr();
             },
             factory: () => new Component
           });

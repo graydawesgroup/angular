@@ -2,6 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files([
     "tsconfig-build.json",
+    "tsconfig-test.json",
     "tsconfig.json",
 ])
 
@@ -11,3 +12,8 @@ ts_library(
     name = "types",
     srcs = glob(["*.ts"]),
 )
+
+exports_files([
+    "license-banner.txt",
+    "README.md",
+])

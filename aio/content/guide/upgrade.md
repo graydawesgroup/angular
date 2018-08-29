@@ -1,7 +1,7 @@
-# Upgrading from AngularJS
+# Upgrading from AngularJS to Angular
 
-_Angular_ is the name for the Angular of today and tomorrow.
-_AngularJS_ is the name for all v1.x versions of Angular.
+_Angular_ is the name for the Angular of today and tomorrow.<br />
+_AngularJS_ is the name for all 1.x versions of Angular.
 
 AngularJS apps are great.
 Always consider the business case before moving to Angular.
@@ -195,7 +195,7 @@ transition period.
 
 ### How ngUpgrade Works
 
-The primary tool provided by ngUpgrade is called the `UpgradeModule`.
+One of the primary tools provided by ngUpgrade is called the `UpgradeModule`.
 This is a module that contains utilities for bootstrapping and managing hybrid
 applications that support both Angular and AngularJS code.
 
@@ -252,7 +252,7 @@ frameworks in how it actually works.
 </table>
 
 Even accounting for these differences you can still have dependency injection
-interoperability. The `UpgradeModule` resolves the differences and makes
+interoperability. `upgrade/static` resolves the differences and makes
 everything work seamlessly:
 
 * You can make AngularJS services available for injection to Angular code
@@ -385,7 +385,7 @@ That means that you need at least one module each from both AngularJS and Angula
 You will import `UpgradeModule` inside the NgModule, and then use it for
 bootstrapping the AngularJS module.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 For more information, see [NgModules](guide/ngmodules).
 
@@ -444,7 +444,7 @@ In the constructor of the `AppModule`, use dependency injection to get a hold of
 and use it to bootstrap the AngularJS app in the `AppModule.ngDoBootstrap` method.
 The `upgrade.bootstrap` method takes the exact same arguments as [angular.bootstrap](https://docs.angularjs.org/api/ng/function/angular.bootstrap):
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 Note that you do not add a `bootstrap` declaration to the `@NgModule` decorator, since
 AngularJS will own the root template of the application.
@@ -490,7 +490,7 @@ NgModule.
 <code-example path="upgrade-module/src/app/downgrade-static/app.module.ts" region="ngmodule" title="app.module.ts">
 </code-example>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 All Angular components, directives and pipes must be declared in an NgModule.
 
@@ -569,7 +569,7 @@ So, you can write an Angular component and then use it from AngularJS
 code. This is useful when you start to migrate from lower-level
 components and work your way up. But in some cases it is more convenient
 to do things in the opposite order: To start with higher-level components
-and work your way down. This too can be done using the `UpgradeModule`.
+and work your way down. This too can be done using the `upgrade/static`.
 You can *upgrade* AngularJS component directives and then use them from
 Angular.
 
@@ -588,7 +588,7 @@ and a controller:
 
 You can *upgrade* this component to Angular using the `UpgradeComponent` class.
 By creating a new Angular **directive** that extends `UpgradeComponent` and doing a `super` call
-inside it's constructor, you have a fully upgraded AngularJS component to be used inside Angular.
+inside its constructor, you have a fully upgraded AngularJS component to be used inside Angular.
 All that is left is to add it to `AppModule`'s `declarations` array.
 
 <code-example path="upgrade-module/src/app/upgrade-static/hero-detail.component.ts" region="hero-detail-upgrade" title="hero-detail.component.ts">
@@ -602,7 +602,7 @@ All that is left is to add it to `AppModule`'s `declarations` array.
 Upgraded components are Angular **directives**, instead of **components**, because Angular
 is unaware that AngularJS will create elements under it. As far as Angular knows, the upgraded
 component is just a directive - a tag - and Angular doesn't have to concern itself with
-it's children.
+its children.
 
 </div>
 
@@ -710,7 +710,7 @@ and then provide the input and output using Angular template syntax:
 When you are using a downgraded Angular component from an AngularJS
 template, the need may arise to *transclude* some content into it. This
 is also possible. While there is no such thing as transclusion in Angular,
-there is a very similar concept called *content projection*. The `UpgradeModule`
+there is a very similar concept called *content projection*. `upgrade/static`
 is able to make these two features interoperate.
 
 Angular components that support content projection make use of an `<ng-content>`
@@ -778,16 +778,25 @@ delete them once the upgrade is over.
 It's also recommended to export the `heroesServiceFactory` function so that Ahead-of-Time
 compilation can pick it up.
 
+<div class="alert is-helpful">
+
+**Note:** The 'heroes' string inside the factory refers to the AngularJS `HeroesService`.
+It is common in AngularJS apps to choose a service name for the token, for example "heroes",
+and append the "Service" suffix to create the class name.
+
+</div>
+
 <code-example path="upgrade-module/src/app/ajs-to-a-providers/ajs-upgraded-providers.ts" title="ajs-upgraded-providers.ts">
 </code-example>
+
+You can then provide the service to Angular by adding it to the `@NgModule`:
 
 <code-example path="upgrade-module/src/app/ajs-to-a-providers/app.module.ts" region="register" title="app.module.ts">
 </code-example>
 
-You can then inject it in Angular using it's class as a type annotation:
+Then use the service inside your component by injecting it in the component constructor using its class as a type annotation:
 
 <code-example path="upgrade-module/src/app/ajs-to-a-providers/hero-detail.component.ts" title="hero-detail.component.ts">
-
 </code-example>
 
 <div class="alert is-helpful">
@@ -1107,7 +1116,7 @@ can verify you're calling their APIs with the correct kinds of arguments.
 <code-example path="upgrade-phonecat-1-typescript/app/app.config.ts" title="app/app.config.ts">
 </code-example>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The [AngularJS 1.x type definitions](https://www.npmjs.com/package/@types/angular)
 you installed are not officially maintained by the Angular team,
@@ -1260,7 +1269,7 @@ app. Switch to the [ngUpgrade bootstrap](#bootstrapping-hybrid-applications) met
 instead.
 
 First, remove the `ng-app` attribute from `index.html`.
-Then import `UpgradeModule` in the `AppModule`, and override it's `ngDoBootstrap` method:
+Then import `UpgradeModule` in the `AppModule`, and override its `ngDoBootstrap` method:
 
 <code-example path="upgrade-phonecat-2-hybrid/app/app.module.ts" region="upgrademodule" title="app/app.module.ts">
 </code-example>
@@ -1280,7 +1289,7 @@ so it is already being loaded by the browser.
 Now you're running both AngularJS and Angular at the same time. That's pretty
 exciting! You're not running any actual Angular components yet. That's next.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 #### Why declare _angular_ as _angular.IAngularStatic_?
 
@@ -1342,7 +1351,7 @@ and the other loads the details of a specified phone:
 <code-example path="upgrade-phonecat-2-hybrid/app/core/phone/phone.service.ts" region="fullclass" title="app/core/phone/phone.service.ts">
 </code-example>
 
-The methods now return Observables of type `PhoneData` and `PhoneData[]`. This is
+The methods now return observables of type `PhoneData` and `PhoneData[]`. This is
 a type you don't have yet. Add a simple interface for it:
 
 <code-example path="upgrade-phonecat-2-hybrid/app/core/phone/phone.service.ts" region="phonedata-interface" title="app/core/phone/phone.service.ts (interface)" linenums="false">
@@ -1385,14 +1394,14 @@ it's really an instance of the `Phone` class and you annotate its type according
 
 Now there are two AngularJS components using an Angular service!
 The components don't need to be aware of this, though the fact that the
-service returns Observables and not Promises is a bit of a giveaway.
+service returns observables and not promises is a bit of a giveaway.
 In any case, what you've achieved is a migration of a service to Angular
 without having to yet migrate the components that use it.
 
 <div class="alert is-helpful">
 
 You could use the `toPromise` method of `Observable` to turn those
-Observables into Promises in the service. In many cases that reduce
+observables into promises in the service. In many cases that reduce
 the number of changes to the component controllers.
 
 </div>
@@ -1619,7 +1628,7 @@ instead of the default "push state" strategy.
 Now update the `AppModule` to import this `AppRoutingModule` and also the
 declare the root `AppComponent` as the bootstrap component.
 That tells Angular that it should bootstrap the app with the _root_ `AppComponent` and
-insert it's view into the host web page.
+insert its view into the host web page.
 
 You must also remove the bootstrap of the AngularJS module from `ngDoBootstrap()` in `app.module.ts`
 and the `UpgradeModule` import.
@@ -1640,7 +1649,7 @@ and let that directive construct the appropriate URL to the `PhoneDetailComponen
 <code-example path="upgrade-phonecat-3-final/app/phone-list/phone-list.template.html" region="list" title="app/phone-list/phone-list.template.html (list with links)" linenums="false">
 </code-example>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 See the [Routing](guide/router) page for details.
 
@@ -1695,7 +1704,7 @@ module configuration files and not needed in Angular:
 
 The external typings for AngularJS may be uninstalled as well. The only ones
 you still need are for Jasmine and Angular polyfills.
-The `@angular/upgrade` package and it's mapping in `systemjs.config.js` can also go.
+The `@angular/upgrade` package and its mapping in `systemjs.config.js` can also go.
 
 <code-example format="">
   npm uninstall @angular/upgrade --save

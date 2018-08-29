@@ -8,7 +8,7 @@
 
 import {Location, LocationStrategy} from '@angular/common';
 import {EventEmitter, Injectable} from '@angular/core';
-import {ISubscription} from 'rxjs/Subscription';
+import {SubscriptionLike} from 'rxjs';
 
 
 /**
@@ -19,7 +19,7 @@ import {ISubscription} from 'rxjs/Subscription';
 @Injectable()
 export class SpyLocation implements Location {
   urlChanges: string[] = [];
-  private _history: LocationState[] = [new LocationState('', '')];
+  private _history: LocationState[] = [new LocationState('', '', null)];
   private _historyIndex: number = 0;
   /** @internal */
   _subject: EventEmitter<any> = new EventEmitter();
@@ -33,6 +33,8 @@ export class SpyLocation implements Location {
   setBaseHref(url: string) { this._baseHref = url; }
 
   path(): string { return this._history[this._historyIndex].path; }
+
+  private state(): string { return this._history[this._historyIndex].state; }
 
   isCurrentPathEqualTo(path: string, query: string = ''): boolean {
     const givenPath = path.endsWith('/') ? path.substring(0, path.length - 1) : path;
@@ -60,13 +62,13 @@ export class SpyLocation implements Location {
     return this._baseHref + url;
   }
 
-  go(path: string, query: string = '') {
+  go(path: string, query: string = '', state: any = null) {
     path = this.prepareExternalUrl(path);
 
     if (this._historyIndex > 0) {
       this._history.splice(this._historyIndex + 1);
     }
-    this._history.push(new LocationState(path, query));
+    this._history.push(new LocationState(path, query, state));
     this._historyIndex = this._history.length - 1;
 
     const locationState = this._history[this._historyIndex - 1];
@@ -79,7 +81,7 @@ export class SpyLocation implements Location {
     this._subject.emit({'url': url, 'pop': false});
   }
 
-  replaceState(path: string, query: string = '') {
+  replaceState(path: string, query: string = '', state: any = null) {
     path = this.prepareExternalUrl(path);
 
     const history = this._history[this._historyIndex];
@@ -89,6 +91,7 @@ export class SpyLocation implements Location {
 
     history.path = path;
     history.query = query;
+    history.state = state;
 
     const url = path + (query.length > 0 ? ('?' + query) : '');
     this.urlChanges.push('replace: ' + url);
@@ -97,20 +100,20 @@ export class SpyLocation implements Location {
   forward() {
     if (this._historyIndex < (this._history.length - 1)) {
       this._historyIndex++;
-      this._subject.emit({'url': this.path(), 'pop': true});
+      this._subject.emit({'url': this.path(), 'state': this.state(), 'pop': true});
     }
   }
 
   back() {
     if (this._historyIndex > 0) {
       this._historyIndex--;
-      this._subject.emit({'url': this.path(), 'pop': true});
+      this._subject.emit({'url': this.path(), 'state': this.state(), 'pop': true});
     }
   }
 
   subscribe(
       onNext: (value: any) => void, onThrow?: ((error: any) => void)|null,
-      onReturn?: (() => void)|null): ISubscription {
+      onReturn?: (() => void)|null): SubscriptionLike {
     return this._subject.subscribe({next: onNext, error: onThrow, complete: onReturn});
   }
 
@@ -118,10 +121,5 @@ export class SpyLocation implements Location {
 }
 
 class LocationState {
-  path: string;
-  query: string;
-  constructor(path: string, query: string) {
-    this.path = path;
-    this.query = query;
-  }
+  constructor(public path: string, public query: string, public state: any) {}
 }

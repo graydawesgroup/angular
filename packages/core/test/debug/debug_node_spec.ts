@@ -141,10 +141,13 @@ class LocalsComp {
  `
 })
 class BankAccount {
-  @Input() bank: string;
-  @Input('account') id: string;
+  // TODO(issue/24571): remove '!'.
+  @Input() bank !: string;
+  // TODO(issue/24571): remove '!'.
+  @Input('account') id !: string;
 
-  normalizedBankName: string;
+  // TODO(issue/24571): remove '!'.
+  normalizedBankName !: string;
 }
 
 @Component({
@@ -191,9 +194,7 @@ class TestApp {
     it('should list all child nodes', () => {
       fixture = TestBed.createComponent(ParentComp);
       fixture.detectChanges();
-
-      // The root component has 3 elements and 2 text node children.
-      expect(fixture.debugElement.childNodes.length).toEqual(5);
+      expect(fixture.debugElement.childNodes.length).toEqual(3);
     });
 
     it('should list all component child elements', () => {

@@ -152,7 +152,7 @@ Install `source-map-explorer`:
 Build your app for production _including the source maps_
 
 <code-example language="none" class="code-shell">
-  ng build --prod --sourcemaps
+  ng build --prod --source-map
 </code-example>
 
 List the generated bundles in the `dist/` folder.
@@ -187,7 +187,7 @@ For example, given the `<base href="/my/app/">`, the browser resolves a URL such
 into a server request for `my/app/some/place/foo.jpg`.
 During navigation, the Angular router uses the _base href_ as the base path to component, template, and module files.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 See also the [*APP_BASE_HREF*](api/common/APP_BASE_HREF "API: APP_BASE_HREF") alternative.
 
@@ -215,10 +215,10 @@ The `ng build` command writes generated build artifacts to the output folder.
 The `ng serve` command does not.
 It serves build artifacts from memory instead for a faster development experience.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The output folder is  `dist/` by default.
-To output to a different folder, change the `outDir` in `.angular-cli.json`.
+To output to a different folder, change the `outputPath` in `angular.json`.
 
 </div>
 
@@ -334,7 +334,7 @@ modified to serve `index.html`:
               &lt;add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /&gt;
               &lt;add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" /&gt;
             &lt;/conditions&gt;
-            &lt;action type="Rewrite" url="/src/" /&gt;
+            &lt;action type="Rewrite" url="/index.html" /&gt;
           &lt;/rule&gt;
         &lt;/rules&gt;
       &lt;/rewrite&gt;

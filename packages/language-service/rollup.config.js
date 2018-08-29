@@ -9,12 +9,12 @@
 const commonjs = require('rollup-plugin-commonjs');
 const sourcemaps = require('rollup-plugin-sourcemaps');
 const path = require('path');
+const fs = require('fs');
 
 var m = /^\@angular\/((\w|\-)+)(\/(\w|\d|\/|\-)+)?$/;
 var location = normalize('../../dist/packages-dist') + '/';
 var rxjsLocation = normalize('../../node_modules/rxjs');
 var tslibLocation = normalize('../../node_modules/tslib');
-var esm = 'esm/';
 
 var locations = {'compiler-cli': normalize('../../dist/packages') + '/'};
 
@@ -32,36 +32,21 @@ function resolve(id, from) {
     var esm_suffix = esm_suffixes[packageName] || '';
     var loc = locations[packageName] || location;
     var r = loc !== location && (loc + esm_suffix + packageName + (match[3] || '/index') + '.js') ||
-        loc + packageName + '/esm5/' + packageName + '.js';
+        loc + packageName + '/fesm5/' + packageName + '.js';
     return r;
   }
-  if (id && id.startsWith('rxjs/')) {
-    const resolved = `${rxjsLocation}${id.replace('rxjs', '')}.js`;
-    return resolved;
+  if (id && (id == 'rxjs' || id.startsWith('rxjs/'))) {
+    return `${rxjsLocation}${id.replace('rxjs', '')}/index.js`;
   }
   if (id == 'tslib') {
     return tslibLocation + '/tslib.es6.js';
   }
 }
 
-var banner = `
-var $reflect = {defineMetadata: function() {}, getOwnMetadata: function(){}};
-((typeof global !== 'undefined' && global)||{})['Reflect'] = $reflect;
-var $deferred, $resolved, $provided;
-function $getModule(name) { return $provided[name] || require(name); }
-function define(modules, cb) { $deferred = { modules: modules, cb: cb }; }
-module.exports = function(provided) {
-  if ($resolved) return $resolved;
-  var result = {};
-  $provided = Object.assign({'reflect-metadata': $reflect}, provided || {}, { exports: result });
-  $deferred.cb.apply(this, $deferred.modules.map($getModule));
-  $resolved = result;
-  return result;
-}
-`;
+var banner = fs.readFileSync('bundles/banner.js.txt', 'utf8');
 
 module.exports = {
-  entry: '../../dist/packages-dist/language-service/esm5/language-service.js',
+  entry: '../../dist/packages-dist/language-service/fesm5/language-service.js',
   dest: '../../dist/packages-dist/language-service/bundles/language-service.umd.js',
   format: 'amd',
   amd: {

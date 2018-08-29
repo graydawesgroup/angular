@@ -290,6 +290,17 @@ import {ComponentFixture, TestBed, async} from '@angular/core/testing';
            detectChangesAndExpectClassName(`init foo`);
          }));
 
+      it('should co-operate with the interpolated class attribute when interpolation changes',
+         async(() => {
+           fixture = createTestComponent(
+               `<div [ngClass]="{large: false, small: true}" class="{{strExpr}}"></div>`);
+
+           detectChangesAndExpectClassName(`foo small`);
+
+           getComponent().strExpr = 'bar';
+           detectChangesAndExpectClassName(`bar small`);
+         }));
+
       it('should co-operate with the class attribute and binding to it', async(() => {
            fixture =
                createTestComponent(`<div [ngClass]="objExpr" class="init" [class]="'foo'"></div>`);
@@ -347,7 +358,8 @@ import {ComponentFixture, TestBed, async} from '@angular/core/testing';
 @Component({selector: 'test-cmp', template: ''})
 class TestComponent {
   condition: boolean = true;
-  items: any[];
+  // TODO(issue/24571): remove '!'.
+  items !: any[];
   arrExpr: string[] = ['foo'];
   setExpr: Set<string> = new Set<string>();
   objExpr: {[klass: string]: any}|null = {'foo': true, 'bar': false};

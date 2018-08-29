@@ -6,13 +6,16 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Injectable, InjectionToken, StaticProvider} from '../di';
+import {Injectable} from '../di/injectable';
+import {InjectionToken} from '../di/injection_token';
+import {StaticProvider} from '../di/provider';
 import {MissingTranslationStrategy} from '../i18n/tokens';
 import {ViewEncapsulation} from '../metadata';
 import {Type} from '../type';
 
 import {ComponentFactory} from './component_factory';
 import {NgModuleFactory} from './ng_module_factory';
+
 
 
 /**
@@ -39,7 +42,7 @@ function _throwError() {
  * Each `@NgModule` provides an own `Compiler` to its injector,
  * that will use the directives/pipes of the ng module for compilation
  * of components.
- * @stable
+ *
  */
 @Injectable()
 export class Compiler {
@@ -78,6 +81,11 @@ export class Compiler {
    * Clears the cache for the given component/ngModule.
    */
   clearCacheFor(type: Type<any>) {}
+
+  /**
+   * Returns the id for a given NgModule, if one is defined and known to the compiler.
+   */
+  getModuleId(moduleType: Type<any>): string|undefined { return undefined; }
 }
 
 /**
@@ -90,9 +98,6 @@ export type CompilerOptions = {
   defaultEncapsulation?: ViewEncapsulation,
   providers?: StaticProvider[],
   missingTranslation?: MissingTranslationStrategy,
-  // Whether to support the `<template>` tag and the `template` attribute to define angular
-  // templates. They have been deprecated in 4.x, `<ng-template>` should be used instead.
-  enableLegacyTemplate?: boolean,
   preserveWhitespaces?: boolean,
 };
 

@@ -10,13 +10,13 @@ import {Component, Directive, ElementRef, ErrorHandler, EventEmitter, Inject, In
 import {async, fakeAsync, tick} from '@angular/core/testing';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
-import * as angular from '@angular/upgrade/src/common/angular1';
-import {$SCOPE} from '@angular/upgrade/src/common/constants';
 import {UpgradeComponent, UpgradeModule, downgradeComponent} from '@angular/upgrade/static';
+import * as angular from '@angular/upgrade/static/src/common/angular1';
+import {$SCOPE} from '@angular/upgrade/static/src/common/constants';
 
-import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
+import {$digest, bootstrap, html, multiTrim, withEachNg1Version} from '../test_helpers';
 
-{
+withEachNg1Version(() => {
   describe('upgrade ng1 component', () => {
 
     beforeEach(() => destroyPlatform());
@@ -476,8 +476,10 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input('inputAttrA') inputA: string;
-             @Input() inputB: string;
+             // TODO(issue/24571): remove '!'.
+             @Input('inputAttrA') inputA !: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() inputB !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -551,8 +553,10 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input('inputAttrA') inputA: string;
-             @Input() inputB: string;
+             // TODO(issue/24571): remove '!'.
+             @Input('inputAttrA') inputA !: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() inputB !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -626,10 +630,14 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input('inputAttrA') inputA: string;
-             @Output('inputAttrAChange') inputAChange: EventEmitter<any>;
-             @Input() inputB: string;
-             @Output() inputBChange: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Input('inputAttrA') inputA !: string;
+             // TODO(issue/24571): remove '!'.
+             @Output('inputAttrAChange') inputAChange !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Input() inputB !: string;
+             // TODO(issue/24571): remove '!'.
+             @Output() inputBChange !: EventEmitter<any>;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -701,8 +709,10 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Output('outputAttrA') outputA: EventEmitter<any>;
-             @Output() outputB: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output('outputAttrA') outputA !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output() outputB !: EventEmitter<any>;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -783,13 +793,17 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input() fullName: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() fullName !: string;
              @Input('dataA') modelA: any;
              @Input('dataB') modelB: any;
-             @Output('dataBChange') modelBChange: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output('dataBChange') modelBChange !: EventEmitter<any>;
              @Input() modelC: any;
-             @Output() modelCChange: EventEmitter<any>;
-             @Output() event: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output() modelCChange !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output() event !: EventEmitter<any>;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -862,12 +876,18 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input('inputAttrA') inputA: string;
-             @Output('inputAttrAChange') inputAChange: EventEmitter<any>;
-             @Input() inputB: string;
-             @Output() inputBChange: EventEmitter<any>;
-             @Output('outputAttrA') outputA: EventEmitter<any>;
-             @Output() outputB: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Input('inputAttrA') inputA !: string;
+             // TODO(issue/24571): remove '!'.
+             @Output('inputAttrAChange') inputAChange !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Input() inputB !: string;
+             // TODO(issue/24571): remove '!'.
+             @Output() inputBChange !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output('outputAttrA') outputA !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output() outputB !: EventEmitter<any>;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -957,9 +977,12 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: '[ng1]'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input() inputA: string;
-             @Output() inputAChange: EventEmitter<any>;
-             @Output() outputA: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Input() inputA !: string;
+             // TODO(issue/24571): remove '!'.
+             @Output() inputAChange !: EventEmitter<any>;
+             // TODO(issue/24571): remove '!'.
+             @Output() outputA !: EventEmitter<any>;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -1319,7 +1342,9 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
              scope: true,
              controllerAs: 'vm',
              controller: class {
-               hasElement: string; isClass: string; scope: string;
+               hasElement: string;  // TODO(issue/24571): remove '!'.
+               isClass !: string;
+               scope: string;
 
                constructor(public $element: angular.IAugmentedJQuery, $scope: angular.IScope) {
                  this.hasElement = $element[0].nodeName;
@@ -1393,7 +1418,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1A'})
            class Ng1ComponentAFacade extends UpgradeComponent {
-             @Input() title: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() title !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1A', elementRef, injector);
@@ -1402,7 +1428,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
 
            @Directive({selector: 'ng1B'})
            class Ng1ComponentBFacade extends UpgradeComponent {
-             @Input() title: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() title !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1B', elementRef, injector);
@@ -1459,7 +1486,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input() title: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() title !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -1508,7 +1536,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            // Define `Ng1ComponentFacade`
            @Directive({selector: 'ng1'})
            class Ng1ComponentFacade extends UpgradeComponent {
-             @Input() title: string;
+             // TODO(issue/24571): remove '!'.
+             @Input() title !: string;
 
              constructor(elementRef: ElementRef, injector: Injector) {
                super('ng1', elementRef, injector);
@@ -3199,21 +3228,25 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            const element = html(`<ng2></ng2>`);
 
            bootstrap(platformBrowserDynamic(), Ng2Module, element, ng1Module).then(adapter => {
-             // Initial change
+             // Get to a stable `$digest` state.
+             $digest(adapter);
+
+             // Initial change.
+             // (Do not use a specific number due to differences between AngularJS 1.5/1.6.)
+             expect(controllerDoCheckA.calls.count()).toBeGreaterThan(0);
+             expect(controllerDoCheckB.calls.count()).toBeGreaterThan(0);
+             controllerDoCheckA.calls.reset();
+             controllerDoCheckB.calls.reset();
+
+             // Run a `$digest`
+             $digest(adapter);
              expect(controllerDoCheckA.calls.count()).toBe(1);
              expect(controllerDoCheckB.calls.count()).toBe(1);
 
-             // Run a `$digest`
-             // (Since it's the first one since the `$doCheck` watcher was added,
-             //  the `watchFn` will be run twice.)
-             $digest(adapter);
-             expect(controllerDoCheckA.calls.count()).toBe(3);
-             expect(controllerDoCheckB.calls.count()).toBe(3);
-
              // Run another `$digest`
              $digest(adapter);
-             expect(controllerDoCheckA.calls.count()).toBe(4);
-             expect(controllerDoCheckB.calls.count()).toBe(4);
+             expect(controllerDoCheckA.calls.count()).toBe(2);
+             expect(controllerDoCheckB.calls.count()).toBe(2);
            });
          }));
 
@@ -3332,7 +3365,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            @Component(
                {selector: 'ng2', template: '<div *ngIf="show"><ng1A></ng1A> | <ng1B></ng1B></div>'})
            class Ng2Component {
-             @Input() show: boolean;
+             // TODO(issue/24571): remove '!'.
+             @Input() show !: boolean;
            }
 
            // Define `ng1Module`
@@ -3432,7 +3466,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
            @Component(
                {selector: 'ng2', template: '<div *ngIf="show"><ng1A></ng1A> | <ng1B></ng1B></div>'})
            class Ng2Component {
-             @Input() show: boolean;
+             // TODO(issue/24571): remove '!'.
+             @Input() show !: boolean;
            }
 
            // Define `ng1Module`
@@ -3716,7 +3751,8 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
 
          // Define `ng1Component`
          class Ng1ControllerX {
-           ng1XInputA: string;
+           // TODO(issue/24571): remove '!'.
+           ng1XInputA !: string;
            ng1XInputB: any;
            ng1XInputC: any;
 
@@ -3744,12 +3780,16 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
          // Define `Ng1ComponentFacade`
          @Directive({selector: 'ng1X'})
          class Ng1ComponentXFacade extends UpgradeComponent {
-           @Input() ng1XInputA: string;
+           // TODO(issue/24571): remove '!'.
+           @Input() ng1XInputA !: string;
            @Input() ng1XInputB: any;
            @Input() ng1XInputC: any;
-           @Output() ng1XInputCChange: EventEmitter<any>;
-           @Output() ng1XOutputA: EventEmitter<any>;
-           @Output() ng1XOutputB: EventEmitter<any>;
+           // TODO(issue/24571): remove '!'.
+           @Output() ng1XInputCChange !: EventEmitter<any>;
+           // TODO(issue/24571): remove '!'.
+           @Output() ng1XOutputA !: EventEmitter<any>;
+           // TODO(issue/24571): remove '!'.
+           @Output() ng1XOutputB !: EventEmitter<any>;
 
            constructor(elementRef: ElementRef, injector: Injector) {
              super('ng1X', elementRef, injector);
@@ -3958,4 +3998,4 @@ import {$digest, bootstrap, html, multiTrim} from '../test_helpers';
          });
        }));
   });
-}
+});

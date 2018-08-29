@@ -23,13 +23,15 @@ The [aio/README.md](https://github.com/angular/angular/blob/master/aio/README.md
 
 Here are a few essential commands for guide page authors.
 
-1. `yarn setup` &mdash; installs packages; builds docs, plunkers, and zips.
+1. `yarn setup` &mdash; installs packages; builds docs, stackblitz, and zips.
 
 1. `yarn docs-watch --watch-only` &mdash; watches for saved content changes and refreshes the browser. The (optional) `--watch-only` flag skips the initial docs rebuild.
 
 1. `yarn start`  &mdash;  starts the doc viewer application so you can see your local changes in the browser.
 
 1.  http://localhost:4200/  &mdash;  browse to the app running locally.
+
+You can combine `yarn docs-watch` and `yarn start` into one command with `yarn serve-and-sync`.
 
 ## Guide pages
 
@@ -45,7 +47,7 @@ The reader requests a page by its Page URL. The doc viewer fetches the correspon
 Page URLs mirror the `content` file structure. The URL for the page of a guide is in the form `guide/{page-name}`. The page for _this_ "Authors Style Guide" is located at `content/guide/docs-style-guide.md` and its URL is `guide/docs-style-guide`.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 _Tutorial_ pages are exactly like guide pages. The only difference is that they reside in `content/tutorial` instead of `content/guide` and have URLs like `tutorial/{page-name}`.
 
@@ -82,7 +84,7 @@ Standard markdown processors don't allow you to put markdown _within_ HTML tags.
 </div>
 ```
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   It is customary but not required to _precede_ the _closing HTML_ tag with a blank line as well.
 
@@ -101,7 +103,7 @@ Begin the title with the markdown `#` character. Alternatively, you can write th
 
 **Only one title (`<h1>`) per document!**
 
-Title text should be in "Title Case", which means that you use capital letters to start the first words and all _principal_ words. Use lower case letters for _secondary words such as "in", "of", and "the".
+Title text should be in "Title Case", which means that you use capital letters to start the first words and all _principal_ words. Use lower case letters for _secondary_ words such as "in", "of", and "the".
 
 ```html
   # The Meat of the Matter
@@ -159,34 +161,6 @@ Try to minimize the heading depth, preferably only two. But more headings, such 
 
   Try to minimize ...
 ```
-
-## Subsections
-
-Subsections typically present extra detail and references to other pages.
-
-Use subsections for commentary that _enriches_ the reader's understanding of the text that precedes it.
-
-A subsection _must not_ contain anything _essential_ to that understanding. Don't put a critical instruction or a tutorial step in a subsection.
-
-A subsection is content within a `<div>` that has the `l-sub-section` CSS class. You should write the subsection content in markdown.
-
-Here is an example of a subsection `<div>` surrounding the subsection content written in markdown.
-
-<div class="l-sub-section">
-
-  You'll learn about styles for live examples in the [section below](guide/docs-style-guide#live-examples "Live examples").
-
-</div>
-
-```html
-<div class="l-sub-section">
-
-You'll learn about styles for live examples in the [section below](guide/docs-style-guide#live-examples "Live examples").
-
-</div>
-```
-
-Note that at least one blank line must follow the opening `<div>`. A blank line before the closing `</div>` is customary but not required.
 
 ## Table of contents
 
@@ -320,7 +294,7 @@ The author must also write end-to-end tests for the sample.
 
 Code samples are located in sub-folders of the `content/examples` directory of the `angular/angular` repository. An example folder name should be the same as the guide page it supports.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 A guide page might not have its own sample code. It might refer instead to a sample belonging to another page.
 
@@ -353,7 +327,7 @@ In this example, that path is  `docs-style-guide/src/app/app.module.ts`.
 You added a header to tell the reader where to find the file by setting the `title` attribute.
 Following convention, you set the `title` attribute to the file's location within the sample's root folder.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 Unless otherwise noted, all code snippets in this page are derived from sample source code
 located in the `content/examples/docs-style-guide` directory.
@@ -521,7 +495,7 @@ The `linenums` attribute in the second pane restores line numbering for _itself 
 
 You must add special code snippet markup to sample source code files before they can be displayed by `<code-example>` and `<code-tabs>` components.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The sample source code for this page, located in `context/examples/docs-style-guide`, contains examples of every code snippet markup described in this section.
 
@@ -549,7 +523,7 @@ Different file types have different comment syntax so adjust accordingly.
 ```
 
 The doc generation process erases these comments before displaying them in the doc viewer.
-It also strips them from plunkers and sample code downloads.
+It also strips them from stackblitz and sample code downloads.
 
 <div class="alert is-important">
 
@@ -568,7 +542,7 @@ The `<code-example>` and `<code-tabs>` components won't display a source code fi
 The _#docregion_ comment begins a code snippet region.
 Every line of code _after_ that comment belongs in the region _until_ the code fragment processor encounters the end of the file or a closing _#enddocregion_.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The `src/main.ts` is a simple example of a file with a single _#docregion_ at the top of the file.
 
@@ -611,7 +585,7 @@ You can nest _#docregions_ within _#docregions_
 ... yet more code ...
 /// #enddocregion
 ```
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The `src/app/app.module.ts` file has a good example of a nested region.
 
@@ -711,24 +685,24 @@ app.component.2.ts
 
 You'll find many such files among the samples in the Angular documentation.
 
-Remember to exclude these files from plunkers by listing them in the `plnkr.json` as illustrated here.
+Remember to exclude these files from stackblitz by listing them in the `stackblitz.json` as illustrated here.
 
 <code-example
-  path="docs-style-guide/plnkr.json"
-  title="plnkr.json"></code-example>
+  path="docs-style-guide/stackblitz.json"
+  title="stackblitz.json"></code-example>
 
 {@a live-examples}
 ## Live examples
 
-By adding `<live-example>` to the page you generate links that run sample code in the Plunker live coding environment and download that code to the reader's file system.
+By adding `<live-example>` to the page you generate links that run sample code in the Stackblitz live coding environment and download that code to the reader's file system.
 
-Live examples (AKA "plunkers") are defined by one or more `plnkr.json` files in the root of a code sample folder. Each sample folder usually has a single unnamed definition file, the default `plnkr.json`.
+Live examples (AKA "stackblitz") are defined by one or more `stackblitz.json` files in the root of a code sample folder. Each sample folder usually has a single unnamed definition file, the default `stackblitz.json`.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
-You can create additional, named definition files in the form `name.plnkr.json`. See `content/examples/testing` for examples.
+You can create additional, named definition files in the form `name.stackblitz.json`. See `content/examples/testing` for examples.
 
-The schema for a `plnkr.json` hasn't been documented yet but looking at the `plnkr.json` files in the example folders should tell you most of what you need to know.
+The schema for a `stackblitz.json` hasn't been documented yet but looking at the `stackblitz.json` files in the example folders should tell you most of what you need to know.
 
 </div>
 
@@ -736,11 +710,11 @@ Adding `<live-example></live-example>` to the page generates the two default lin
 
 <live-example></live-example>
 
-1. a link to the plunker defined by the default `plnkr.json` file located in the code sample folder with the same name as the guide page.
+1. a link to the Stackblitz defined by the default `stackblitz.json` file located in the code sample folder with the same name as the guide page.
 
 2. a link that downloads that sample.
 
-Clicking the first link opens the code sample in a new browser tab in the "embedded plunker" style.
+Clicking the first link opens the code sample on StackBlitz in a new browser tab.
 
 You can change the appearance and behavior of the live example with attributes and classes.
 
@@ -765,7 +739,7 @@ You can achieve the same effect by putting the label between the `<live-example>
 
 <h3 class="no-toc">Live example from another guide</h3>
 
-To link to a plunker in a folder whose name is not the same as the current guide page, set the `name` attribute to the name of that folder.
+To link to a Stackblitz in a folder whose name is not the same as the current guide page, set the `name` attribute to the name of that folder.
 
 <live-example name="router">Live Example from the Router guide</live-example>
 
@@ -773,29 +747,29 @@ To link to a plunker in a folder whose name is not the same as the current guide
 <live-example name="router">Live Example from the Router guide</live-example>
 ```
 
-<h3 class="no-toc">Live Example for named plunker</h3>
+<h3 class="no-toc">Live Example for named Stackblitz</h3>
 
-To link to a plunker defined by a named `plnkr.json` file, set the `plnkr` attribute. The following example links to the plunker defined by `second.plnkr.json` in the current guide's directory.
+To link to a Stackblitz defined by a named `stackblitz.json` file, set the `stackblitz` attribute. The following example links to the Stackblitz defined by `second.stackblitz.json` in the current guide's directory.
 
-<live-example plnkr="second"></live-example>
+<live-example stackblitz="second"></live-example>
 
 ```html
-<live-example plnkr="second"></live-example>
+<live-example stackblitz="second"></live-example>
 ```
 
 <h3 class="no-toc">Live Example without download</h3>
 
 To skip the download link, add the `noDownload` attribute.
 
-<live-example noDownload>Just the plunker</live-example>
+<live-example noDownload>Just the Stackblitz</live-example>
 
 ```html
-<live-example noDownload>Just the plunker</live-example>
+<live-example noDownload>Just the Stackblitz</live-example>
 ```
 
 <h3 class="no-toc">Live Example with download-only</h3>
 
-To skip the live plunker link and only link to the download, add the `downloadOnly` attribute.
+To skip the live Stackblitz link and only link to the download, add the `downloadOnly` attribute.
 
 <live-example downloadOnly>Download only</live-example>
 
@@ -805,21 +779,18 @@ To skip the live plunker link and only link to the download, add the `downloadOn
 
 <h3 class="no-toc">Embedded live example</h3>
 
-By default, a live example link opens a plunker in a separate browser tab.
-You can embed the plunker within the guide page itself by adding the `embedded` attribute.
+By default, a live example link opens a Stackblitz in a separate browser tab.
+You can embed the Stackblitz within the guide page itself by adding the `embedded` attribute.
 
-For performance reasons, the plunker does not start right away. The reader sees an image instead. Clicking the image starts the sometimes-slow process of launching the embedded plunker within an iframe on the page.
+For performance reasons, the Stackblitz does not start right away. The reader sees an image instead. Clicking the image starts the sometimes-slow process of launching the embedded Stackblitz within an iframe on the page.
 
-You usually replace the default plunker image with a custom image that better represents the sample.
-Store that image in the `content/images` directory in a folder with a name matching the corresponding example folder.
-
-Here's an embedded live example for this guide. It has a custom image created from a snapshot of the running app, overlayed with `content/images/plunker/unused/click-to-run.png`.
+Here's an embedded live example for this guide.
 
 ```html
-<live-example embedded img="guide/docs-style-guide/docs-style-guide-plunker.png"></live-example>
+<live-example embedded></live-example>
 ```
 
-<live-example embedded img="guide/docs-style-guide/docs-style-guide-plunker.png"></live-example>
+<live-example embedded></live-example>
 
 {@a anchors}
 
@@ -827,14 +798,14 @@ Here's an embedded live example for this guide. It has a custom image created fr
 
 Every section header tag is also an anchor point. Another guide page could add a link to this section by writing:
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 See the ["Anchors"](guide/docs-style-guide#anchors "Style Guide - Anchors") section for details.
 
 </div>
 
 ```html
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 See the ["Anchors"](guide/docs-style-guide#anchors "Style Guide - Anchors") section for details.
 
@@ -876,7 +847,7 @@ Now [link to that custom anchor name](#ugly-anchors) as you did before.
 Now [link to that custom anchor name](#ugly-anchors) as you did before.
 ```
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 Alternatively, you can use the HTML `<a>` tag.
 
@@ -890,44 +861,81 @@ If you do, be sure to set the `id` attribute - not the `name` attribute! The doc
 
 </div>
 
-## Alerts
+## Alerts and Calllouts
 
-Alerts draw attention to important points. Alerts should not be used for multi-line content (use callouts insteads) or stacked on top of each other.  Note that the content of an alert is indented to the right by two spaces.
+Alerts and callouts present warnings, extra detail or references to other pages. They can also be used to provide commentary that _enriches_ the reader's understanding of the content being presented.
+
+An alert or callout _must not_ contain anything _essential_ to that understanding. Don't put a critical instruction or a tutorial step in a subsection.
+
+### Alerts
+
+Alerts draw attention to short important points. Alerts should not be used for multi-line content (use [callouts](#callouts "callouts") instead).
+
+<div class="alert is-helpful">
+
+  You'll learn about styles for live examples in the [section below](guide/docs-style-guide#live-examples "Live examples").
+
+</div>
+
+  Note that at least one blank line must follow both the opening and closing `<div>` tags. A blank line before the closing `</div>` is customary but not required.
+
+```html
+<div class="alert is-helpful">
+
+You'll learn about styles for live examples in the [section below](guide/docs-style-guide#live-examples "Live examples").
+
+</div>
+```
+
+There are three different _urgency levels_ used to style the alerts based on the severity or importance of the content.
 
 <div class="alert is-critical">
+
 A critical alert.
+
 </div>
 
 <div class="alert is-important">
+
 An important alert.
+
 </div>
 
 <div class="alert is-helpful">
+
 A helpful, informational alert.
+
 </div>
 
 
 Here is the markup for these alerts.
 ```html
 <div class="alert is-critical">
+
 A critical alert.
+
 </div>
 
 <div class="alert is-important">
+
 An important alert.
+
 </div>
 
 <div class="alert is-helpful">
+
 A helpful, informational alert.
+
 </div>
 ```
 
-Alerts are meant to grab the user's attention and should be used sparingly.
-They are not for casual asides or commentary. Use [subsections](#subsections "subsections") for commentary.
+### Callouts
 
-## Callouts
+Callouts, like alerts, are meant to draw attention to important points. Use a callout when you want a riveting header and multi-line content.
 
-Callouts (like alerts) are meant to draw attention to important points. Use a callout when you want a riveting header and multi-line content.
+If you have more than two paragraphs, consider creating a new page or making it part of the main content.
+
+Callouts use the same _urgency levels_ that alerts do.
 
 <div class="callout is-critical">
 <header>A critical point</header>
@@ -944,7 +952,7 @@ Callouts (like alerts) are meant to draw attention to important points. Use a ca
 </div>
 
 <div class="callout is-helpful">
-<header>A helpful point</header>
+<header>A helpful or informational point</header>
 
 **Pitchfork hoodie semiotics**, roof party pop-up _paleo_ messenger bag cred Carles tousled Truffaut yr. Semiotics viral freegan VHS, Shoreditch disrupt McSweeney's. Intelligentsia kale chips Vice four dollar toast, Schlitz crucifix
 
@@ -960,10 +968,10 @@ Here is the markup for the first of these callouts.
 </div>
 ```
 
-Notice that
-* the callout header text is forced to all upper case.
-* the callout body can be written in markdown.
-* a blank line separates the `</header>` tag from the markdown content.
+Notice that:
+* the callout header text is forced to all upper case
+* the callout body can be written in markdown
+* a blank line separates the `</header>` tag from the markdown content
 
 Callouts are meant to grab the user's attention. They are not for casual asides. Please use them sparingly.
 
@@ -1255,7 +1263,7 @@ Note that you generally don't wrap a floating image in a `<figure>` element.
 
 If you have a floating image inside an alert, callout, or a subsection, it is a good idea to apply the `clear-fix` class to the `div` to ensure that the image doesn't overflow its container. For example:
 
-<div class="l-sub-section clear-fix">
+<div class="alert is-helpful clear-fix">
 
   <img src="generated/images/guide/docs-style-guide/flying-hero.png"
     alt="flying Angular hero"
@@ -1267,7 +1275,7 @@ If you have a floating image inside an alert, callout, or a subsection, it is a 
 </div>
 
 ```html
-<div class="l-sub-section clear-fix">
+<div class="alert is-helpful clear-fix">
 
   <img src="generated/images/guide/docs-style-guide/flying-hero.png"
     alt="flying Angular hero"

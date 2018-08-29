@@ -19,6 +19,7 @@ import {DiagnosticContext, MockLanguageServiceHost, getDiagnosticTemplateInfo} f
 
 describe('expression diagnostics', () => {
   let registry: ts.DocumentRegistry;
+
   let host: MockLanguageServiceHost;
   let service: ts.LanguageService;
   let context: DiagnosticContext;
@@ -28,13 +29,13 @@ describe('expression diagnostics', () => {
     registry = ts.createDocumentRegistry(false, '/src');
     host = new MockLanguageServiceHost(['app/app.component.ts'], FILES, '/src');
     service = ts.createLanguageService(host, registry);
-    const program = service.getProgram();
+    const program = service.getProgram() !;
     const checker = program.getTypeChecker();
     const options: CompilerOptions = Object.create(host.getCompilationSettings());
     options.genDir = '/dist';
     options.basePath = '/src';
-    const symbolResolverHost = new ReflectorHost(() => program, host, options);
-    context = new DiagnosticContext(service, program, checker, symbolResolverHost);
+    const symbolResolverHost = new ReflectorHost(() => program !, host, options);
+    context = new DiagnosticContext(service, program !, checker, symbolResolverHost);
     type = context.getStaticSymbol('app/app.component.ts', 'AppComponent');
   });
 
@@ -51,7 +52,7 @@ describe('expression diagnostics', () => {
     function expectNoDiagnostics(diagnostics: ts.Diagnostic[]) {
       if (diagnostics && diagnostics.length) {
         const message =
-            'messags: ' + diagnostics.map(d => messageToString(d.messageText)).join('\n');
+            'messages: ' + diagnostics.map(d => messageToString(d.messageText)).join('\n');
         expect(message).toEqual('');
       }
     }
@@ -75,7 +76,7 @@ describe('expression diagnostics', () => {
     }
   }
 
-  function reject(template: string, expected: string | RegExp) {
+  function reject(template: string, expected: string) {
     const info = getDiagnosticTemplateInfo(context, type, 'app/app.component.html', template);
     if (info) {
       const diagnostics = getTemplateExpressionDiagnostics(info);
@@ -175,7 +176,7 @@ describe('expression diagnostics', () => {
   it('should reject an uncalled event handler',
      () => reject(
          '<div (click)="click">{{person.name.first}}</div>', 'Unexpected callable expression'));
-  describe('with comparisions between nullable and non-nullable', () => {
+  describe('with comparisons between nullable and non-nullable', () => {
     it('should accept ==', () => accept(`<div>{{e == 1 ? 'a' : 'b'}}</div>`));
     it('should accept ===', () => accept(`<div>{{e === 1 ? 'a' : 'b'}}</div>`));
     it('should accept !=', () => accept(`<div>{{e != 1 ? 'a' : 'b'}}</div>`));

@@ -5,14 +5,14 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {ApplicationRef, Compiler, Component, ComponentFactory, ComponentRef, Injector, NgModule, Testability, TestabilityRegistry} from '@angular/core';
-import {TestBed, getTestBed, inject} from '@angular/core/testing';
+import {Compiler, Component, ComponentFactory, Injector, NgModule, TestabilityRegistry} from '@angular/core';
+import {TestBed} from '@angular/core/testing';
 import * as angular from '@angular/upgrade/src/common/angular1';
 import {DowngradeComponentAdapter, groupNodesBySelector} from '@angular/upgrade/src/common/downgrade_component_adapter';
 
-import {nodes} from './test_helpers';
+import {nodes, withEachNg1Version} from './test_helpers';
 
-{
+withEachNg1Version(() => {
   describe('DowngradeComponentAdapter', () => {
     describe('groupNodesBySelector', () => {
       it('should return an array of node collections for each selector', () => {
@@ -82,18 +82,25 @@ import {nodes} from './test_helpers';
       let adapter: DowngradeComponentAdapter;
       let content: string;
       let compiler: Compiler;
+      let registry: TestabilityRegistry;
       let element: angular.IAugmentedJQuery;
 
       class mockScope implements angular.IScope {
+        private destroyListeners: (() => void)[] = [];
+
         $new() { return this; }
         $watch(exp: angular.Ng1Expression, fn?: (a1?: any, a2?: any) => void) {
           return () => {};
         }
         $on(event: string, fn?: (event?: any, ...args: any[]) => void) {
+          if (event === '$destroy' && fn) {
+            this.destroyListeners.push(fn);
+          }
           return () => {};
         }
         $destroy() {
-          return () => {};
+          let listener: (() => void)|undefined;
+          while ((listener = this.destroyListeners.shift())) listener();
         }
         $apply(exp?: angular.Ng1Expression) {
           return () => {};
@@ -104,13 +111,18 @@ import {nodes} from './test_helpers';
         $evalAsync(exp: angular.Ng1Expression, locals?: any) {
           return () => {};
         }
-        $$childTail: angular.IScope;
-        $$childHead: angular.IScope;
-        $$nextSibling: angular.IScope;
+        // TODO(issue/24571): remove '!'.
+        $$childTail !: angular.IScope;
+        // TODO(issue/24571): remove '!'.
+        $$childHead !: angular.IScope;
+        // TODO(issue/24571): remove '!'.
+        $$nextSibling !: angular.IScope;
         [key: string]: any;
         $id = 'mockScope';
-        $parent: angular.IScope;
-        $root: angular.IScope;
+        // TODO(issue/24571): remove '!'.
+        $parent !: angular.IScope;
+        // TODO(issue/24571): remove '!'.
+        $root !: angular.IScope;
       }
 
       function getAdaptor(): DowngradeComponentAdapter {
@@ -157,15 +169,13 @@ import {nodes} from './test_helpers';
             componentFactory, wrapCallback);
       }
 
-      beforeEach((inject([Compiler], (inject_compiler: Compiler) => {
-        compiler = inject_compiler;
+      beforeEach(() => {
+        compiler = TestBed.get(Compiler);
+        registry = TestBed.get(TestabilityRegistry);
         adapter = getAdaptor();
-      })));
-
-      afterEach(() => {
-        let registry = TestBed.get(TestabilityRegistry);
-        registry.unregisterAllApplications();
       });
+      beforeEach(() => registry.unregisterAllApplications());
+      afterEach(() => registry.unregisterAllApplications());
 
       it('should add testabilities hook when creating components', () => {
 
@@ -190,4 +200,4 @@ import {nodes} from './test_helpers';
     });
 
   });
-}
+});

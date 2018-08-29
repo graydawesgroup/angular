@@ -6,17 +6,17 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Observable} from 'rxjs/Observable';
+import {Observable} from 'rxjs';
 
 import {Route} from './config';
 import {ActivatedRouteSnapshot, RouterStateSnapshot} from './router_state';
+import {UrlSegment} from './url_tree';
 
 
 /**
- * @whatItDoes Interface that a class can implement to be a guard deciding if a route can be
- * activated.
+ * @description
  *
- * @howToUse
+ * Interface that a class can implement to be a guard deciding if a route can be activated.
  *
  * ```
  * class UserToken {}
@@ -76,7 +76,7 @@ import {ActivatedRouteSnapshot, RouterStateSnapshot} from './router_state';
  * class AppModule {}
  * ```
  *
- * @stable
+ *
  */
 export interface CanActivate {
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot):
@@ -84,10 +84,9 @@ export interface CanActivate {
 }
 
 /**
- * @whatItDoes Interface that a class can implement to be a guard deciding if a child route can be
- * activated.
+ * @description
  *
- * @howToUse
+ * Interface that a class can implement to be a guard deciding if a child route can be activated.
  *
  * ```
  * class UserToken {}
@@ -157,7 +156,7 @@ export interface CanActivate {
  * class AppModule {}
  * ```
  *
- * @stable
+ *
  */
 export interface CanActivateChild {
   canActivateChild(childRoute: ActivatedRouteSnapshot, state: RouterStateSnapshot):
@@ -165,10 +164,9 @@ export interface CanActivateChild {
 }
 
 /**
- * @whatItDoes Interface that a class can implement to be a guard deciding if a route can be
- * deactivated.
+ * @description
  *
- * @howToUse
+ * Interface that a class can implement to be a guard deciding if a route can be deactivated.
  *
  * ```
  * class UserToken {}
@@ -231,7 +229,7 @@ export interface CanActivateChild {
  * class AppModule {}
  * ```
  *
- * @stable
+ *
  */
 export interface CanDeactivate<T> {
   canDeactivate(
@@ -240,9 +238,9 @@ export interface CanDeactivate<T> {
 }
 
 /**
- * @whatItDoes Interface that class can implement to be a data provider.
+ * @description
  *
- * @howToUse
+ * Interface that class can implement to be a data provider.
  *
  * ```
  * class Backend {
@@ -304,7 +302,7 @@ export interface CanDeactivate<T> {
  * })
  * class AppModule {}
  * ```
- * @stable
+ *
  */
 export interface Resolve<T> {
   resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<T>|Promise<T>|T;
@@ -312,15 +310,14 @@ export interface Resolve<T> {
 
 
 /**
- * @whatItDoes Interface that a class can implement to be a guard deciding if a children can be
- * loaded.
+ * @description
  *
- * @howToUse
+ * Interface that a class can implement to be a guard deciding if a children can be loaded.
  *
  * ```
  * class UserToken {}
  * class Permissions {
- *   canLoadChildren(user: UserToken, id: string): boolean {
+ *   canLoadChildren(user: UserToken, id: string, segments: UrlSegment[]): boolean {
  *     return true;
  *   }
  * }
@@ -329,8 +326,8 @@ export interface Resolve<T> {
  * class CanLoadTeamSection implements CanLoad {
  *   constructor(private permissions: Permissions, private currentUser: UserToken) {}
  *
- *   canLoad(route: Route): Observable<boolean>|Promise<boolean>|boolean {
- *     return this.permissions.canLoadChildren(this.currentUser, route);
+ *   canLoad(route: Route, segments: UrlSegment[]): Observable<boolean>|Promise<boolean>|boolean {
+ *     return this.permissions.canLoadChildren(this.currentUser, route, segments);
  *   }
  * }
  *
@@ -367,13 +364,15 @@ export interface Resolve<T> {
  *   providers: [
  *     {
  *       provide: 'canLoadTeamSection',
- *       useValue: (route: Route) => true
+ *       useValue: (route: Route, segments: UrlSegment[]) => true
  *     }
  *   ]
  * })
  * class AppModule {}
  * ```
  *
- * @stable
+ *
  */
-export interface CanLoad { canLoad(route: Route): Observable<boolean>|Promise<boolean>|boolean; }
+export interface CanLoad {
+  canLoad(route: Route, segments: UrlSegment[]): Observable<boolean>|Promise<boolean>|boolean;
+}

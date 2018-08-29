@@ -1,7 +1,5 @@
 # Lifecycle Hooks
 
-<img src="generated/images/guide/lifecycle-hooks/hooks-in-sequence.png" alt="Us" class="left">
-
 A component has a lifecycle managed by Angular.
 
 Angular creates it, renders it, creates and renders its children,
@@ -10,7 +8,7 @@ checks it when its data-bound properties change, and destroys it before removing
 Angular offers **lifecycle hooks**
 that provide visibility into these key life moments and the ability to act when they occur.
 
-A directive has the same set of lifecycle hooks, minus the hooks that are specific to component content and views.
+A directive has the same set of lifecycle hooks.
 
 {@a hooks-overview}
 
@@ -27,7 +25,7 @@ that Angular calls shortly after creating the component:
 
 <code-example path="lifecycle-hooks/src/app/peek-a-boo.component.ts" region="ngOnInit" title="peek-a-boo.component.ts (excerpt)" linenums="false"></code-example>
 
-No directive or component will implement all of the lifecycle hooks and some of the hooks only make sense for components.
+No directive or component will implement all of the lifecycle hooks.
 Angular only calls a directive/component hook method *if it is defined*.
 
 {@a hooks-purpose-timing}
@@ -88,11 +86,9 @@ calls the lifecycle hook methods in the following sequence at specific moments:
     </td>
     <td>
 
-      Respond after Angular projects external content into the component's view.
+      Respond after Angular projects external content into the component's view / the view that a directive is in.
 
       Called _once_ after the first `ngDoCheck()`.
-
-      _A component-only hook_.
 
     </td>
   </tr>
@@ -102,11 +98,9 @@ calls the lifecycle hook methods in the following sequence at specific moments:
     </td>
     <td>
 
-      Respond after Angular checks the content projected into the component.
+      Respond after Angular checks the content projected into the directive/component.
 
       Called after the `ngAfterContentInit()` and every subsequent `ngDoCheck()`.
-
-      _A component-only hook_.
 
     </td>
   </tr>
@@ -116,11 +110,9 @@ calls the lifecycle hook methods in the following sequence at specific moments:
     </td>
     <td>
 
-      Respond after Angular initializes the component's views and child views.
+      Respond after Angular initializes the component's views and child views / the view that a directive is in.
 
       Called _once_ after the first `ngAfterContentChecked()`.
-
-      _A component-only hook_.
 
     </td>
   </tr>
@@ -130,11 +122,9 @@ calls the lifecycle hook methods in the following sequence at specific moments:
     </td>
     <td>
 
-      Respond after Angular checks the component's views and child views.
+      Respond after Angular checks the component's views and child views / the view that a directive is in.
 
       Called after the `ngAfterViewInit` and every subsequent `ngAfterContentChecked()`.
-
-      _A component-only hook_.
 
     </td>
   </tr>
@@ -310,7 +300,7 @@ The sequence of log messages follows the prescribed hook calling order:
 `OnChanges`, `OnInit`, `DoCheck`&nbsp;(3x), `AfterContentInit`, `AfterContentChecked`&nbsp;(3x),
 `AfterViewInit`, `AfterViewChecked`&nbsp;(3x), and `OnDestroy`.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   The constructor isn't an Angular hook *per se*.
   The log confirms that input properties (the `name` property in this case) have no assigned values at construction.
@@ -333,7 +323,7 @@ Go undercover with these two spy hooks to discover when an element is initialize
 This is the perfect infiltration job for a directive.
 The heroes will never know they're being watched.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   Kidding aside, pay attention to two key points:
 
@@ -383,7 +373,7 @@ Use `ngOnInit()` for two main reasons:
 
 Experienced developers agree that components should be cheap and safe to construct.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   Misko Hevery, Angular team lead,
   [explains why](http://misko.hevery.com/code-reviewers-guide/flaw-constructor-does-real-work/)
@@ -404,7 +394,7 @@ Remember also that a directive's data-bound input properties are not set until _
 That's a problem if you need to initialize the directive based on those properties.
 They'll have been set when `ngOnInit()` runs.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   The `ngOnChanges()` method is your first opportunity to access those properties.
   Angular calls `ngOnChanges()` before `ngOnInit()` and many times after that.
@@ -470,7 +460,7 @@ The hero object *reference* didn't change so, from Angular's perspective, there 
 
 Use the `DoCheck` hook to detect and act upon changes that Angular doesn't catch on its own.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   Use this method to detect a change that Angular overlooked.
 
@@ -559,7 +549,7 @@ The *AfterContent* sample explores the `AfterContentInit()` and `AfterContentChe
 *Content projection* is a way to import HTML content from outside the component and insert that content
 into the component's template in a designated spot.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   AngularJS developers know this technique as *transclusion*.
 
@@ -571,7 +561,7 @@ the `AfterContentComponent`'s parent. Here's the parent's template:
 
 <code-example path="lifecycle-hooks/src/app/after-content.component.ts" region="parent-template" title="AfterContentParentComponent (template excerpt)" linenums="false"></code-example>
 
-Notice that the `<my-child>` tag is tucked between the `<after-content>` tags.
+Notice that the `<app-child>` tag is tucked between the `<after-content>` tags.
 Never put content between a component's element tags *unless you intend to project that content
 into the component*.
 
@@ -581,13 +571,13 @@ Now look at the component's template:
 
 The `<ng-content>` tag is a *placeholder* for the external content.
 It tells Angular where to insert that content.
-In this case, the projected content is the `<my-child>` from the parent.
+In this case, the projected content is the `<app-child>` from the parent.
 
 <figure>
   <img src='generated/images/guide/lifecycle-hooks/projected-child-view.png' alt="Projected Content">
 </figure>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
   The telltale signs of *content projection* are twofold:
 

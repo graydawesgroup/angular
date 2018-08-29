@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef} from '@angular/core';
+import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef, ɵstringify as stringify} from '@angular/core';
 
 
 /**
@@ -17,13 +17,16 @@ import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef} from '
  *  - `then` template is the inline template of `ngIf` unless bound to a different value.
  *  - `else` template is blank unless it is bound.
  *
- * ## Most common usage
+ *
+ * @usageNotes
+ *
+ * ### Most common usage
  *
  * The most common usage of the `ngIf` directive is to conditionally show the inline template as
  * seen in this example:
  * {@example common/ngIf/ts/module.ts region='NgIfSimple'}
  *
- * ## Showing an alternative template using `else`
+ * ### Showing an alternative template using `else`
  *
  * If it is necessary to display a template when the `expression` is falsy use the `else` template
  * binding as shown. Note that the `else` binding points to a `<ng-template>` labeled `#elseBlock`.
@@ -32,7 +35,7 @@ import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef} from '
  *
  * {@example common/ngIf/ts/module.ts region='NgIfElse'}
  *
- * ## Using non-inlined `then` template
+ * ### Using non-inlined `then` template
  *
  * Usually the `then` template is the inlined template of the `ngIf`, but it can be changed using
  * a binding (just like `else`). Because `then` and `else` are bindings, the template references can
@@ -40,7 +43,7 @@ import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef} from '
  *
  * {@example common/ngIf/ts/module.ts region='NgIfThenElse'}
  *
- * ## Storing conditional result in a variable
+ * ### Storing conditional result in a variable
  *
  * A common pattern is that we need to show a set of properties from the same object. If the
  * object is undefined, then we have to use the safe-traversal-operator `?.` to guard against
@@ -96,7 +99,7 @@ import {Directive, EmbeddedViewRef, Input, TemplateRef, ViewContainerRef} from '
  * <ng-template #elseBlock>...</ng-template>
  * ```
  *
- * @stable
+ *
  */
 @Directive({selector: '[ngIf]'})
 export class NgIf {
@@ -117,14 +120,16 @@ export class NgIf {
   }
 
   @Input()
-  set ngIfThen(templateRef: TemplateRef<NgIfContext>) {
+  set ngIfThen(templateRef: TemplateRef<NgIfContext>|null) {
+    assertTemplate('ngIfThen', templateRef);
     this._thenTemplateRef = templateRef;
     this._thenViewRef = null;  // clear previous view if any.
     this._updateView();
   }
 
   @Input()
-  set ngIfElse(templateRef: TemplateRef<NgIfContext>) {
+  set ngIfElse(templateRef: TemplateRef<NgIfContext>|null) {
+    assertTemplate('ngIfElse', templateRef);
     this._elseTemplateRef = templateRef;
     this._elseViewRef = null;  // clear previous view if any.
     this._updateView();
@@ -156,10 +161,14 @@ export class NgIf {
   public static ngIfUseIfTypeGuard: void;
 }
 
-/**
- * @stable
- */
 export class NgIfContext {
   public $implicit: any = null;
   public ngIf: any = null;
+}
+
+function assertTemplate(property: string, templateRef: TemplateRef<any>| null): void {
+  const isTemplateRefOrNull = !!(!templateRef || templateRef.createEmbeddedView);
+  if (!isTemplateRefOrNull) {
+    throw new Error(`${property} must be a TemplateRef, but received '${stringify(templateRef)}'.`);
+  }
 }

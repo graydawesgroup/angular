@@ -30,7 +30,7 @@ import {EmbeddedViewRef, ViewRef} from './view_ref';
  *
  * To access a `ViewContainerRef` of an Element, you can either place a {@link Directive} injected
  * with `ViewContainerRef` on the Element, or you obtain it via a {@link ViewChild} query.
- * @stable
+ *
  */
 export abstract class ViewContainerRef {
   /**
@@ -41,6 +41,7 @@ export abstract class ViewContainerRef {
 
   abstract get injector(): Injector;
 
+  /** @deprecated No replacement */
   abstract get parentInjector(): Injector;
 
   /**

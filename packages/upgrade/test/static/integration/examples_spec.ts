@@ -10,12 +10,12 @@ import {Component, Directive, ElementRef, Injector, Input, NgModule, destroyPlat
 import {async} from '@angular/core/testing';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
-import * as angular from '@angular/upgrade/src/common/angular1';
 import {UpgradeComponent, UpgradeModule, downgradeComponent} from '@angular/upgrade/static';
+import * as angular from '@angular/upgrade/static/src/common/angular1';
 
-import {bootstrap, html, multiTrim} from '../test_helpers';
+import {bootstrap, html, multiTrim, withEachNg1Version} from '../test_helpers';
 
-{
+withEachNg1Version(() => {
   describe('examples', () => {
 
     beforeEach(() => destroyPlatform());
@@ -29,7 +29,8 @@ import {bootstrap, html, multiTrim} from '../test_helpers';
          // component
          @Directive({selector: 'ng1'})
          class Ng1Component extends UpgradeComponent {
-           @Input() title: string;
+           // TODO(issue/24571): remove '!'.
+           @Input() title !: string;
 
            constructor(elementRef: ElementRef, injector: Injector) {
              super('ng1', elementRef, injector);
@@ -42,7 +43,8 @@ import {bootstrap, html, multiTrim} from '../test_helpers';
            template: 'ng2[<ng1 [title]="nameProp">transclude</ng1>](<ng-content></ng-content>)'
          })
          class Ng2Component {
-           @Input('name') nameProp: string;
+           // TODO(issue/24571): remove '!'.
+           @Input('name') nameProp !: string;
          }
 
          // This module represents the Angular pieces of the application
@@ -52,7 +54,7 @@ import {bootstrap, html, multiTrim} from '../test_helpers';
            imports: [BrowserModule, UpgradeModule]
          })
          class Ng2Module {
-           ngDoBootstrap() { /* this is a placeholder to stop the boostrapper from complaining */
+           ngDoBootstrap() { /* this is a placeholder to stop the bootstrapper from complaining */
            }
          }
 
@@ -84,4 +86,4 @@ import {bootstrap, html, multiTrim} from '../test_helpers';
          });
        }));
   });
-}
+});

@@ -11,34 +11,36 @@ import {Directive, EmbeddedViewRef, Input, OnChanges, SimpleChange, SimpleChange
 /**
  * @ngModule CommonModule
  *
- * @whatItDoes Inserts an embedded view from a prepared `TemplateRef`
- *
- * @howToUse
- * ```
- * <ng-container *ngTemplateOutlet="templateRefExp; context: contextExp"></ng-container>
- * ```
- *
  * @description
+ *
+ * Inserts an embedded view from a prepared `TemplateRef`.
  *
  * You can attach a context object to the `EmbeddedViewRef` by setting `[ngTemplateOutletContext]`.
  * `[ngTemplateOutletContext]` should be an object, the object's keys will be available for binding
  * by the local template `let` declarations.
  *
- * Note: using the key `$implicit` in the context object will set it's value as default.
+ * @usageNotes
+ * ```
+ * <ng-container *ngTemplateOutlet="templateRefExp; context: contextExp"></ng-container>
+ * ```
  *
- * ## Example
+ * Using the key `$implicit` in the context object will set its value as default.
+ *
+ * ### Example
  *
  * {@example common/ngTemplateOutlet/ts/module.ts region='NgTemplateOutlet'}
  *
- * @stable
  */
 @Directive({selector: '[ngTemplateOutlet]'})
 export class NgTemplateOutlet implements OnChanges {
-  private _viewRef: EmbeddedViewRef<any>;
+  // TODO(issue/24571): remove '!'.
+  private _viewRef !: EmbeddedViewRef<any>;
 
-  @Input() public ngTemplateOutletContext: Object;
+  // TODO(issue/24571): remove '!'.
+  @Input() public ngTemplateOutletContext !: Object;
 
-  @Input() public ngTemplateOutlet: TemplateRef<any>;
+  // TODO(issue/24571): remove '!'.
+  @Input() public ngTemplateOutlet !: TemplateRef<any>;
 
   constructor(private _viewContainerRef: ViewContainerRef) {}
 

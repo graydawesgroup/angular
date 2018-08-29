@@ -7,7 +7,7 @@
  */
 
 import {Directive, Input, OnChanges, SimpleChanges, StaticProvider, forwardRef} from '@angular/core';
-import {Observable} from 'rxjs/Observable';
+import {Observable} from 'rxjs';
 
 import {AbstractControl} from '../model';
 import {NG_VALIDATORS, Validators} from '../validators';
@@ -35,7 +35,7 @@ export type ValidationErrors = {
  * }
  * ```
  *
- * @stable
+ *
  */
 export interface Validator {
   validate(c: AbstractControl): ValidationErrors|null;
@@ -62,7 +62,7 @@ export const CHECKBOX_REQUIRED_VALIDATOR: StaticProvider = {
 
 /**
  * A Directive that adds the `required` validator to any controls marked with the
- * `required` attribute, via the {@link NG_VALIDATORS} binding.
+ * `required` attribute, via the `NG_VALIDATORS` binding.
  *
  * ### Example
  *
@@ -70,7 +70,7 @@ export const CHECKBOX_REQUIRED_VALIDATOR: StaticProvider = {
  * <input name="fullName" ngModel required>
  * ```
  *
- * @stable
+ *
  */
 @Directive({
   selector:
@@ -79,8 +79,10 @@ export const CHECKBOX_REQUIRED_VALIDATOR: StaticProvider = {
   host: {'[attr.required]': 'required ? "" : null'}
 })
 export class RequiredValidator implements Validator {
-  private _required: boolean;
-  private _onChange: () => void;
+  // TODO(issue/24571): remove '!'.
+  private _required !: boolean;
+  // TODO(issue/24571): remove '!'.
+  private _onChange !: () => void;
 
   @Input()
   get required(): boolean|string { return this._required; }
@@ -100,7 +102,7 @@ export class RequiredValidator implements Validator {
 
 /**
  * A Directive that adds the `required` validator to checkbox controls marked with the
- * `required` attribute, via the {@link NG_VALIDATORS} binding.
+ * `required` attribute, via the `NG_VALIDATORS` binding.
  *
  * ### Example
  *
@@ -123,7 +125,7 @@ export class CheckboxRequiredValidator extends RequiredValidator {
 }
 
 /**
- * Provider which adds {@link EmailValidator} to {@link NG_VALIDATORS}.
+ * Provider which adds `EmailValidator` to `NG_VALIDATORS`.
  */
 export const EMAIL_VALIDATOR: any = {
   provide: NG_VALIDATORS,
@@ -133,7 +135,7 @@ export const EMAIL_VALIDATOR: any = {
 
 /**
  * A Directive that adds the `email` validator to controls marked with the
- * `email` attribute, via the {@link NG_VALIDATORS} binding.
+ * `email` attribute, via the `NG_VALIDATORS` binding.
  *
  * ### Example
  *
@@ -150,8 +152,10 @@ export const EMAIL_VALIDATOR: any = {
   providers: [EMAIL_VALIDATOR]
 })
 export class EmailValidator implements Validator {
-  private _enabled: boolean;
-  private _onChange: () => void;
+  // TODO(issue/24571): remove '!'.
+  private _enabled !: boolean;
+  // TODO(issue/24571): remove '!'.
+  private _onChange !: () => void;
 
   @Input()
   set email(value: boolean|string) {
@@ -166,20 +170,14 @@ export class EmailValidator implements Validator {
   registerOnValidatorChange(fn: () => void): void { this._onChange = fn; }
 }
 
-/**
- * @stable
- */
 export interface ValidatorFn { (c: AbstractControl): ValidationErrors|null; }
 
-/**
- * @stable
- */
 export interface AsyncValidatorFn {
   (c: AbstractControl): Promise<ValidationErrors|null>|Observable<ValidationErrors|null>;
 }
 
 /**
- * Provider which adds {@link MinLengthValidator} to {@link NG_VALIDATORS}.
+ * Provider which adds `MinLengthValidator` to `NG_VALIDATORS`.
  *
  * ## Example:
  *
@@ -192,10 +190,10 @@ export const MIN_LENGTH_VALIDATOR: any = {
 };
 
 /**
- * A directive which installs the {@link MinLengthValidator} for any `formControlName`,
+ * A directive which installs the `MinLengthValidator` for any `formControlName`,
  * `formControl`, or control with `ngModel` that also has a `minlength` attribute.
  *
- * @stable
+ *
  */
 @Directive({
   selector: '[minlength][formControlName],[minlength][formControl],[minlength][ngModel]',
@@ -204,10 +202,13 @@ export const MIN_LENGTH_VALIDATOR: any = {
 })
 export class MinLengthValidator implements Validator,
     OnChanges {
-  private _validator: ValidatorFn;
-  private _onChange: () => void;
+  // TODO(issue/24571): remove '!'.
+  private _validator !: ValidatorFn;
+  // TODO(issue/24571): remove '!'.
+  private _onChange !: () => void;
 
-  @Input() minlength: string;
+  // TODO(issue/24571): remove '!'.
+  @Input() minlength !: string;
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('minlength' in changes) {
@@ -228,7 +229,7 @@ export class MinLengthValidator implements Validator,
 }
 
 /**
- * Provider which adds {@link MaxLengthValidator} to {@link NG_VALIDATORS}.
+ * Provider which adds `MaxLengthValidator` to `NG_VALIDATORS`.
  *
  * ## Example:
  *
@@ -241,11 +242,10 @@ export const MAX_LENGTH_VALIDATOR: any = {
 };
 
 /**
- * A directive which installs the {@link MaxLengthValidator} for any `formControlName,
- * `formControl`,
- * or control with `ngModel` that also has a `maxlength` attribute.
+ * A directive which installs the `MaxLengthValidator` for any `formControlName`,
+ * `formControl`, or control with `ngModel` that also has a `maxlength` attribute.
  *
- * @stable
+ *
  */
 @Directive({
   selector: '[maxlength][formControlName],[maxlength][formControl],[maxlength][ngModel]',
@@ -254,10 +254,13 @@ export const MAX_LENGTH_VALIDATOR: any = {
 })
 export class MaxLengthValidator implements Validator,
     OnChanges {
-  private _validator: ValidatorFn;
-  private _onChange: () => void;
+  // TODO(issue/24571): remove '!'.
+  private _validator !: ValidatorFn;
+  // TODO(issue/24571): remove '!'.
+  private _onChange !: () => void;
 
-  @Input() maxlength: string;
+  // TODO(issue/24571): remove '!'.
+  @Input() maxlength !: string;
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('maxlength' in changes) {
@@ -287,7 +290,7 @@ export const PATTERN_VALIDATOR: any = {
 
 /**
  * A Directive that adds the `pattern` validator to any controls marked with the
- * `pattern` attribute, via the {@link NG_VALIDATORS} binding. Uses attribute value
+ * `pattern` attribute, via the `NG_VALIDATORS` binding. Uses attribute value
  * as the regex to validate Control value against.  Follows pattern attribute
  * semantics; i.e. regex must match entire Control value.
  *
@@ -296,7 +299,7 @@ export const PATTERN_VALIDATOR: any = {
  * ```
  * <input [name]="fullName" pattern="[a-zA-Z ]*" ngModel>
  * ```
- * @stable
+ *
  */
 @Directive({
   selector: '[pattern][formControlName],[pattern][formControl],[pattern][ngModel]',
@@ -305,10 +308,13 @@ export const PATTERN_VALIDATOR: any = {
 })
 export class PatternValidator implements Validator,
     OnChanges {
-  private _validator: ValidatorFn;
-  private _onChange: () => void;
+  // TODO(issue/24571): remove '!'.
+  private _validator !: ValidatorFn;
+  // TODO(issue/24571): remove '!'.
+  private _onChange !: () => void;
 
-  @Input() pattern: string|RegExp;
+  // TODO(issue/24571): remove '!'.
+  @Input() pattern !: string | RegExp;
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('pattern' in changes) {

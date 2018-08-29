@@ -18,7 +18,7 @@ import {splitAtColon, stringify} from './util';
 // group 3: "@trigger" from "@trigger"
 const HOST_REG_EXP = /^(?:(?:\[([^\]]+)\])|(?:\(([^\)]+)\)))|(\@[-\w]+)$/;
 
-function _sanitizeIdentifier(name: string): string {
+export function sanitizeIdentifier(name: string): string {
   return name.replace(/\W/g, '_');
 }
 
@@ -42,7 +42,7 @@ export function identifierName(compileIdentifier: CompileIdentifierMetadata | nu
     identifier = `anonymous_${_anonymousTypeIndex++}`;
     ref['__anonymousType'] = identifier;
   } else {
-    identifier = _sanitizeIdentifier(identifier);
+    identifier = sanitizeIdentifier(identifier);
   }
   return identifier;
 }
@@ -120,7 +120,7 @@ export interface CompileFactoryMetadata extends CompileIdentifierMetadata {
 }
 
 export function tokenName(token: CompileTokenMetadata) {
-  return token.value != null ? _sanitizeIdentifier(token.value) : identifierName(token.identifier);
+  return token.value != null ? sanitizeIdentifier(token.value) : identifierName(token.identifier);
 }
 
 export function tokenReference(token: CompileTokenMetadata) {
@@ -134,6 +134,19 @@ export function tokenReference(token: CompileTokenMetadata) {
 export interface CompileTokenMetadata {
   value?: any;
   identifier?: CompileIdentifierMetadata|CompileTypeMetadata;
+}
+
+export interface CompileInjectableMetadata {
+  symbol: StaticSymbol;
+  type: CompileTypeMetadata;
+
+  providedIn?: StaticSymbol;
+
+  useValue?: any;
+  useClass?: StaticSymbol;
+  useExisting?: StaticSymbol;
+  useFactory?: StaticSymbol;
+  deps?: any[];
 }
 
 /**
@@ -175,6 +188,7 @@ export class CompileStylesheetMetadata {
 export interface CompileTemplateSummary {
   ngContentSelectors: string[];
   encapsulation: ViewEncapsulation|null;
+  styles: string[];
 }
 
 /**
@@ -230,6 +244,7 @@ export class CompileTemplateMetadata {
     return {
       ngContentSelectors: this.ngContentSelectors,
       encapsulation: this.encapsulation,
+      styles: this.styles
     };
   }
 }
@@ -512,6 +527,15 @@ export interface CompileNgModuleSummary extends CompileTypeSummary {
   providers: {provider: CompileProviderMetadata, module: CompileIdentifierMetadata}[];
   // Note: This is transitive.
   modules: CompileTypeMetadata[];
+}
+
+export class CompileShallowModuleMetadata {
+  // TODO(issue/24571): remove '!'.
+  type !: CompileTypeMetadata;
+
+  rawExports: any;
+  rawImports: any;
+  rawProviders: any;
 }
 
 /**

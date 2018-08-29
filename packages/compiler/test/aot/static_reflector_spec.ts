@@ -364,7 +364,8 @@ describe('StaticReflector', () => {
       const classData: any = moduleMetadata['InvalidMetadata'];
       expect(classData).toBeDefined();
       simplify(
-          reflector.getStaticSymbol('/tmp/src/invalid-metadata.ts', ''), classData.decorators[0]);
+          reflector.getStaticSymbol('/tmp/src/invalid-metadata.ts', ''),
+          classData.decorators[0].arguments);
     } catch (e) {
       expect(e.position).toBeDefined();
       threw = true;
@@ -1023,7 +1024,7 @@ describe('StaticReflector', () => {
   });
 
   // Regression #18170
-  it('should agressively evaluate array indexes', () => {
+  it('should aggressively evaluate array indexes', () => {
     const data = Object.create(DEFAULT_TEST_DATA);
     const file = '/tmp/src/my_component.ts';
     data[file] = `
@@ -1147,7 +1148,7 @@ describe('StaticReflector', () => {
   Function calls are not supported in decorators but 'functionToCall' was called.`);
       });
 
-      it('should report a formatted error for a refernce to a function call', () => {
+      it('should report a formatted error for a reference to a function call', () => {
         expect(() => {
           return reflector.annotations(
               reflector.getStaticSymbol(fileName, 'ReferenceCalledFunction'));
@@ -1170,7 +1171,7 @@ describe('StaticReflector', () => {
       'CALL_FUNCTION' calls 'functionToCall' at /tmp/src/invalid/function-call.ts(3,38).`);
       });
 
-      it('should report a formatted error for a double-indirect refernce to a function call', () => {
+      it('should report a formatted error for a double-indirect reference to a function call', () => {
         expect(() => {
           return reflector.annotations(
               reflector.getStaticSymbol(fileName, 'TwoLevelsIndirectReferenceCalledFunction'));
@@ -1550,7 +1551,7 @@ const DEFAULT_TEST_DATA: {[key: string]: any} = {
           @CustomDecorator() get foo(): string { return ''; }
         }
       `,
-  '/tmp/src/invalid-calll-definitions.ts': `
+  '/tmp/src/invalid-call-definitions.ts': `
         export function someFunction(a: any) {
           if (Array.isArray(a)) {
             return a;
@@ -1559,7 +1560,7 @@ const DEFAULT_TEST_DATA: {[key: string]: any} = {
         }
       `,
   '/tmp/src/invalid-calls.ts': `
-        import {someFunction} from './nvalid-calll-definitions.ts';
+        import {someFunction} from './nvalid-call-definitions.ts';
         import {Component} from '@angular/core';
         import {NgIf} from '@angular/common';
 

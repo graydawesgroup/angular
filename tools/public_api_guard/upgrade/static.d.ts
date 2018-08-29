@@ -13,13 +13,11 @@ export declare function downgradeInjectable(token: any): Function;
 /** @experimental */
 export declare function downgradeModule<T>(moduleFactoryOrBootstrapFn: NgModuleFactory<T> | ((extraProviders: StaticProvider[]) => Promise<NgModuleRef<T>>)): string;
 
-/** @stable */
 export declare function getAngularJSGlobal(): any;
 
 /** @deprecated */
 export declare function getAngularLib(): any;
 
-/** @stable */
 export declare function setAngularJSGlobal(ng: any): void;
 
 /** @deprecated */
@@ -40,10 +38,9 @@ export declare class UpgradeModule {
     injector: Injector;
     ngZone: NgZone;
     constructor(
-        injector: Injector,
-        ngZone: NgZone);
+    injector: Injector,
+    ngZone: NgZone);
     bootstrap(element: Element, modules?: string[], config?: any): void;
 }
 
-/** @stable */
 export declare const VERSION: Version;

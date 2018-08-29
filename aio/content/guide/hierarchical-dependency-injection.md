@@ -24,7 +24,7 @@ An Angular application is a tree of components. Each component instance has its 
 The tree of components parallels the tree of injectors.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -61,7 +61,7 @@ The requests keep bubbling up until Angular finds an injector that can handle th
 If it runs out of ancestors, Angular throws an error.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -196,7 +196,7 @@ Providing the service at the component level ensures that _every_ instance of th
 No tax return overwriting. No mess.
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 
@@ -220,7 +220,7 @@ Suppose you configured the root injector (marked as A) with _generic_ providers 
 You create a car component (A) that displays a car constructed from these three generic services.
 
 Then you create a child component (B) that defines its own, _specialized_ providers for `CarService` and `EngineService`
-that have special capabilites suitable for whatever is going on in component (B).
+that have special capabilities suitable for whatever is going on in component (B).
 
 Component (B) is the parent of another component (C) that defines its own, even _more specialized_ provider for `CarService`.
 
@@ -244,7 +244,7 @@ its injector produces an instance of `Car` resolved by injector (C) with an `Eng
 
 
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 
 

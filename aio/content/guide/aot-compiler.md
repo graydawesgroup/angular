@@ -4,7 +4,7 @@ The Angular Ahead-of-Time (AOT) compiler converts your Angular HTML and TypeScri
 
 This guide explains how to build with the AOT compiler using different compiler options and how to write Angular metadata that AOT can compile.
 
-<div class="l-sub-section">
+<div class="alert is-helpful>
 
   <a href="https://www.youtube.com/watch?v=kW9cJsvcsGo">Watch compiler author Tobias Bosch explain the Angular Compiler</a> at AngularConnect 2016.
 
@@ -39,7 +39,7 @@ For AOT compilation, append the `--aot` flags to the _build-only_ or the _build-
   ng serve --aot
 </code-example>
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 The `--prod` meta-flag compiles with AOT by default.
 
@@ -92,18 +92,21 @@ You can control your app compilation by providing template compiler options in t
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,
-    "preserveWhiteSpace": false,
+    "preserveWhitespaces": true,
     ...
   }
 }
 ```
+### *enableResourceInlining*
+This options tell the compiler to replace the `templateUrl` and `styleUrls` property in all `@Component` decorators with inlined contents in `template` and `styles` properties.
+When enabled, the `.js` output of ngc will have no lazy-loaded `templateUrl` or `styleUrls`.
 
 ### *skipMetadataEmit*
 
 This option tells the compiler not to produce `.metadata.json` files.
 The option is `false` by default.
 
-`.metadata.json` files contain infomration needed by the template compiler from a `.ts`
+`.metadata.json` files contain information needed by the template compiler from a `.ts`
 file that is not included in the `.d.ts` file produced by the TypeScript compiler. This information contains,
 for example, the content of annotations (such as a component's template) which TypeScript
 emits to the `.js` file but not to the `.d.ts` file.
@@ -118,7 +121,7 @@ include a copy of the information that is in the `.metadata.json` file.
 ### *strictMetadataEmit*
 
 This option tells the template compiler to report an error to the `.metadata.json`
-file if `"skipMetadataEmit"` is `false` . This option is `false` by default. This should only be used when `"skipMetadataEmit"` is `false` and `"skipTemplateCodeGen"` is `true`.
+file if `"skipMetadataEmit"` is `false` . This option is `false` by default. This should only be used when `"skipMetadataEmit"` is `false` and `"skipTemplateCodegen"` is `true`.
 
 It is intended to validate the `.metadata.json` files emitted for bundling with an `npm` package. The validation is overly strict and can emit errors for metadata that would never produce an error when used by the template compiler. You can choose to suppress the error emitted by this option for an exported symbol by including `@dynamic` in the comment documenting the symbol.
 
@@ -188,7 +191,7 @@ This option should be set to `false` when using factory summaries.
 
 ### *fullTemplateTypeCheck*
 
-This option tells the compiler to enable the [binding expression validation](#binding-expresion-validation)
+This option tells the compiler to enable the [binding expression validation](#binding-expression-validation)
 phase of the template compiler which uses TypeScript to validate binding expressions.
 
 This option is `false` by default.
@@ -204,7 +207,7 @@ JavaScript with [JsDoc](http://usejsdoc.org/) comments needed by the
 ### *annotationsAs*
 
 Use this option to modify how the Angular specific annotations are emitted to improve tree-shaking. Non-Angular
-annotations and decorators are unnaffected. Default is `static fields`.
+annotations and decorators are unaffected. Default is `static fields`.
 
 value           | description
 ----------------|-------------------------------------------------------------
@@ -214,13 +217,6 @@ value           | description
 ### *trace*
 
 This tells the compiler to print extra information while compiling templates.
-
-### *enableLegacyTemplate*
-
-The use of `<template>` element was deprecated starting in Angular 4.0 in favor of using
-`<ng-template>` to avoid colliding with the DOM's element of the same name. Setting this option to
-`true` enables the use of the deprecated `<template>` element . This option
-is `false` by default. This option might be required by some third-party Angular libraries.
 
 ### *disableExpressionLowering*
 
@@ -234,9 +230,7 @@ done manually.
 ### *preserveWhitespaces*
 
 This option tells the compiler whether to remove blank text nodes from compiled templates.
-This option is `true` by default.
-
-*Note*: It is recommended to set this explicitly to `false` as it emits smaller template factory modules and might be set to `false` by default in the future.
+As of v6, this option is `false` by default, which results in smaller emitted template factory modules.
 
 ### *allowEmptyCodegenFiles*
 
@@ -245,14 +239,14 @@ Tells the compiler to generate all the possible generated files even if they are
 how `bazel` rules track file dependencies. It is not recommended to use this option outside of the `bazel`
 rules.
 
-  ### *enableIvy*
+### *enableIvy*
 
-  Tells the compiler to generate definitions using the Render3 style code generation. This option defaults to `false`.
+Tells the compiler to generate definitions using the Render3 style code generation. This option defaults to `false`.
 
-  Not all features are supported with this option enabled. It is only supported
-  for experimentation and testing of Render3 style code generation.
+Not all features are supported with this option enabled. It is only supported
+for experimentation and testing of Render3 style code generation.
 
-  *Note*: Is it not recommended to use this option as it is not yet feature complete with the Render2 code generation.
+*Note*: Is it not recommended to use this option as it is not yet feature complete with the Render2 code generation.
 
 
 ## Angular Metadata and AOT
@@ -303,7 +297,7 @@ At the same time, the AOT **_collector_** analyzes the metadata recorded in the 
 
 You can think of `.metadata.json` as a diagram of the overall structure of a decorator's metadata, represented as an [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
 Angular's [schema.ts](https://github.com/angular/angular/blob/master/packages/compiler-cli/src/metadata/schema.ts)
 describes the JSON format as a collection of TypeScript interfaces.
@@ -339,7 +333,7 @@ Parentheses                        | `(a + b)`
 If an expression uses unsupported syntax, the _collector_ writes an error node to the `.metadata.json` file. The compiler later reports the error if it needs that
 piece of metadata to generate the application code.
 
-<div class="l-sub-section">
+<div class="alert is-helpful">
 
  If you want `ngc` to report syntax errors immediately rather than produce a `.metadata.json` file with errors, set the `strictMetadataEmit` option in `tsconfig`.
 
@@ -388,7 +382,7 @@ export function serverFactory() {
 })
 ```
 
-Beginning in version 5, the compiler automatically performs this rewritting while emitting the `.js` file.
+Beginning in version 5, the compiler automatically performs this rewriting while emitting the `.js` file.
 
 {@a function-calls}
 ### Limited function calls
@@ -656,7 +650,7 @@ The following are metadata errors you may encounter, with explanations and sugge
 
 <h3 class="no-toc">Expression form not supported</h3>
 
-The compiler encountered an expression it didn't understand while evalutating Angular metadata.
+The compiler encountered an expression it didn't understand while evaluating Angular metadata.
 
 Language features outside of the compiler's [restricted expression syntax](#expression-syntax)
 can produce this error, as seen in the following example:
@@ -996,7 +990,7 @@ import { configuration } from './configuration';
 The compiler encountered a type and can't determine which module exports that type.
 
 This can happen if you refer to an ambient type.
-For example, the `Window` type is an ambiant type declared in the global `.d.ts` file.
+For example, the `Window` type is an ambient type declared in the global `.d.ts` file.
 
 You'll get an error if you reference it in the component constructor,
 which the compiler must statically analyze.
@@ -1008,17 +1002,17 @@ export class MyComponent {
   constructor (private win: Window) { ... }
 }
 ```
-TypeScript understands ambiant types so you don't import them.
+TypeScript understands ambient types so you don't import them.
 The Angular compiler does not understand a type that you neglect to export or import.
 
 In this case, the compiler doesn't understand how to inject something with the `Window` token.
 
 Do not refer to ambient types in metadata expressions.
 
-If you must inject an instance of an ambiant type,
+If you must inject an instance of an ambient type,
 you can finesse the problem in four steps:
 
-1. Create an injection token for an instance of the ambiant type.
+1. Create an injection token for an instance of the ambient type.
 1. Create a factory function that returns that instance.
 1. Add a `useFactory` provider with that factory function.
 1. Use `@Inject` to inject the instance.
@@ -1142,12 +1136,12 @@ This error can occur if you use an expression in the `extends` clause of a class
 Chuck: After reviewing your PR comment I'm still at a loss. See [comment there](https://github.com/angular/angular/pull/17712#discussion_r132025495).
 
 -->
-{@a binding-expresion-validation}
+{@a binding-expression-validation}
 
   ## Phase 3: binding expression validation
 
   In the validation phase, the Angular template compiler uses the TypeScript compiler to validate the
-  binding expressions in templates. Enable this phase explicity by adding the compiler
+  binding expressions in templates. Enable this phase explicitly by adding the compiler
   option `"fullTemplateTypeCheck"` in the `"angularCompilerOptions"` of the project's `tsconfig.json` (see
   [Angular Compiler Options](#compiler-options)).
 
@@ -1177,7 +1171,7 @@ Chuck: After reviewing your PR comment I'm still at a loss. See [comment there](
   generated by the template compiler that holds contents of the `MyComponent` class template.
   Compiler never writes this file to disk. The line and column numbers are relative to the template string
   in the `@Component` annotation of the class, `MyComponent` in this case. If a component uses
-  `templateUrl` instead of `template`, the errors are reported in the HTML file refereneced by the
+  `templateUrl` instead of `template`, the errors are reported in the HTML file referenced by the
   `templateUrl` instead of a synthetic file.
 
   The error location is the beginning of the text node that contains the interpolation expression with

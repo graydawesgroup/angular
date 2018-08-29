@@ -12,10 +12,12 @@
 // This is important to prevent a build cycle, as @angular/core needs to
 // be compiled with the compiler.
 
+import {CssSelector} from './selector';
+
 export interface Inject { token: any; }
 export const createInject = makeMetadataFactory<Inject>('Inject', (token: any) => ({token}));
-export const createInjectionToken =
-    makeMetadataFactory<object>('InjectionToken', (desc: string) => ({_desc: desc}));
+export const createInjectionToken = makeMetadataFactory<object>(
+    'InjectionToken', (desc: string) => ({_desc: desc, ngInjectableDef: undefined}));
 
 export interface Attribute { attributeName?: string; }
 export const createAttribute =
@@ -73,7 +75,8 @@ export interface Component extends Directive {
 export enum ViewEncapsulation {
   Emulated = 0,
   Native = 1,
-  None = 2
+  None = 2,
+  ShadowDom = 3
 }
 
 export enum ChangeDetectionStrategy {
@@ -126,7 +129,16 @@ export interface ModuleWithProviders {
   ngModule: Type;
   providers?: Provider[];
 }
-
+export interface Injectable {
+  providedIn?: Type|'root'|any;
+  useClass?: Type|any;
+  useExisting?: Type|any;
+  useValue?: any;
+  useFactory?: Type|any;
+  deps?: Array<Type|any[]>;
+}
+export const createInjectable =
+    makeMetadataFactory('Injectable', (injectable: Injectable = {}) => injectable);
 export interface SchemaMetadata { name: string; }
 
 export const CUSTOM_ELEMENTS_SCHEMA: SchemaMetadata = {
@@ -138,7 +150,6 @@ export const NO_ERRORS_SCHEMA: SchemaMetadata = {
 };
 
 export const createOptional = makeMetadataFactory('Optional');
-export const createInjectable = makeMetadataFactory('Injectable');
 export const createSelf = makeMetadataFactory('Self');
 export const createSkipSelf = makeMetadataFactory('SkipSelf');
 export const createHost = makeMetadataFactory('Host');
@@ -194,6 +205,7 @@ export const enum NodeFlags {
   TypeViewQuery = 1 << 27,
   StaticQuery = 1 << 28,
   DynamicQuery = 1 << 29,
+  TypeModuleProvider = 1 << 30,
   CatQuery = TypeContentQuery | TypeViewQuery,
 
   // mutually exclusive values...
@@ -204,7 +216,27 @@ export const enum DepFlags {
   None = 0,
   SkipSelf = 1 << 0,
   Optional = 1 << 1,
-  Value = 2 << 2,
+  Self = 1 << 2,
+  Value = 1 << 3,
+}
+
+/**
+ * Injection flags for DI.
+ */
+export const enum InjectFlags {
+  Default = 0,
+
+  /**
+   * Specifies that an injector should retrieve a dependency from any injector until reaching the
+   * host element of the current component. (Only used with Element Injector)
+   */
+  Host = 1 << 0,
+  /** Don't descend into ancestors of the node requesting injection. */
+  Self = 1 << 1,
+  /** Skip the node that is requesting injection. */
+  SkipSelf = 1 << 2,
+  /** Inject `defaultValue` instead if token not found. */
+  Optional = 1 << 3,
 }
 
 export const enum ArgumentType {Inline = 0, Dynamic = 1}
@@ -265,4 +297,111 @@ function makeMetadataFactory<T>(name: string, props?: (...args: any[]) => T): Me
 export interface Route {
   children?: Route[];
   loadChildren?: string|Type|any;
+}
+
+/**
+ * Flags used to generate R3-style CSS Selectors. They are pasted from
+ * core/src/render3/projection.ts because they cannot be referenced directly.
+ */
+export const enum SelectorFlags {
+  /** Indicates this is the beginning of a new negative selector */
+  NOT = 0b0001,
+
+  /** Mode for matching attributes */
+  ATTRIBUTE = 0b0010,
+
+  /** Mode for matching tag names */
+  ELEMENT = 0b0100,
+
+  /** Mode for matching class names */
+  CLASS = 0b1000,
+}
+
+// These are a copy the CSS types from core/src/render3/interfaces/projection.ts
+// They are duplicated here as they cannot be directly referenced from core.
+export type R3CssSelector = (string | SelectorFlags)[];
+export type R3CssSelectorList = R3CssSelector[];
+
+function parserSelectorToSimpleSelector(selector: CssSelector): R3CssSelector {
+  const classes = selector.classNames && selector.classNames.length ?
+      [SelectorFlags.CLASS, ...selector.classNames] :
+      [];
+  const elementName = selector.element && selector.element !== '*' ? selector.element : '';
+  return [elementName, ...selector.attrs, ...classes];
+}
+
+function parserSelectorToNegativeSelector(selector: CssSelector): R3CssSelector {
+  const classes = selector.classNames && selector.classNames.length ?
+      [SelectorFlags.CLASS, ...selector.classNames] :
+      [];
+
+  if (selector.element) {
+    return [
+      SelectorFlags.NOT | SelectorFlags.ELEMENT, selector.element, ...selector.attrs, ...classes
+    ];
+  } else if (selector.attrs.length) {
+    return [SelectorFlags.NOT | SelectorFlags.ATTRIBUTE, ...selector.attrs, ...classes];
+  } else {
+    return selector.classNames && selector.classNames.length ?
+        [SelectorFlags.NOT | SelectorFlags.CLASS, ...selector.classNames] :
+        [];
+  }
+}
+
+function parserSelectorToR3Selector(selector: CssSelector): R3CssSelector {
+  const positive = parserSelectorToSimpleSelector(selector);
+
+  const negative: R3CssSelectorList = selector.notSelectors && selector.notSelectors.length ?
+      selector.notSelectors.map(notSelector => parserSelectorToNegativeSelector(notSelector)) :
+      [];
+
+  return positive.concat(...negative);
+}
+
+export function parseSelectorToR3Selector(selector: string): R3CssSelectorList {
+  const selectors = CssSelector.parse(selector);
+  return selectors.map(parserSelectorToR3Selector);
+}
+
+// Pasted from render3/interfaces/definition since it cannot be referenced directly
+/**
+ * Flags passed into template functions to determine which blocks (i.e. creation, update)
+ * should be executed.
+ *
+ * Typically, a template runs both the creation block and the update block on initialization and
+ * subsequent runs only execute the update block. However, dynamically created views require that
+ * the creation block be executed separately from the update block (for backwards compat).
+ */
+export const enum RenderFlags {
+  /* Whether to run the creation block (e.g. create elements and directives) */
+  Create = 0b01,
+
+  /* Whether to run the update block (e.g. refresh bindings) */
+  Update = 0b10
+}
+
+export const enum InitialStylingFlags {
+  VALUES_MODE = 0b1,
+}
+
+// Pasted from render3/interfaces/node.ts
+/**
+ * A set of marker values to be used in the attributes arrays. Those markers indicate that some
+ * items are not regular attributes and the processing should be adapted accordingly.
+ */
+export const enum AttributeMarker {
+  /**
+   * Marker indicates that the following 3 values in the attributes array are:
+   * namespaceUri, attributeName, attributeValue
+   * in that order.
+   */
+  NamespaceURI = 0,
+
+  /**
+   * This marker indicates that the following attribute names were extracted from bindings (ex.:
+   * [foo]="exp") and / or event handlers (ex. (bar)="doSth()").
+   * Taking the above bindings and outputs as an example an attributes array could look as follows:
+   * ['class', 'fade in', AttributeMarker.SelectOnly, 'foo', 'bar']
+   */
+  SelectOnly = 1
 }

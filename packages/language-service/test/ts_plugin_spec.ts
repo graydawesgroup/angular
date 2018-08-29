@@ -25,7 +25,7 @@ describe('plugin', () => {
 
   it('should not report errors on tour of heroes', () => {
     expectNoDiagnostics(service.getCompilerOptionsDiagnostics());
-    for (let source of program.getSourceFiles()) {
+    for (let source of program !.getSourceFiles()) {
       expectNoDiagnostics(service.getSyntacticDiagnostics(source.fileName));
       expectNoDiagnostics(service.getSemanticDiagnostics(source.fileName));
     }
@@ -36,7 +36,7 @@ describe('plugin', () => {
       {ts: ts, languageService: service, project: mockProject, languageServiceHost: mockHost});
 
   it('should not report template errors on tour of heroes', () => {
-    for (let source of program.getSourceFiles()) {
+    for (let source of program !.getSourceFiles()) {
       // Ignore all 'cases.ts' files as they intentionally contain errors.
       if (!source.fileName.endsWith('cases.ts')) {
         expectNoDiagnostics(plugin.getSemanticDiagnostics(source.fileName));
@@ -55,7 +55,7 @@ describe('plugin', () => {
     }
   });
 
-  it('should be able to return element diretives',
+  it('should be able to return element directives',
      () => { contains('app/app.component.ts', 'empty', 'my-app'); });
 
   it('should be able to return h1 attributes',
@@ -65,7 +65,7 @@ describe('plugin', () => {
     contains('app/app.component.ts', 'div-attributes', '(click)', '[ngClass]', '*ngIf', '*ngFor');
   });
 
-  it('should be able to returned attribute names with an incompete attribute',
+  it('should be able to return attribute names with an incompete attribute',
      () => { contains('app/parsing-cases.ts', 'no-value-attribute', 'id', 'dir', 'lang'); });
 
   it('should be able to return attributes of an incomplete element', () => {
@@ -77,19 +77,19 @@ describe('plugin', () => {
   it('should be able to return completions with a missing closing tag',
      () => { contains('app/parsing-cases.ts', 'missing-closing', 'h1', 'h2'); });
 
-  it('should be able to return common attributes of in an unknown tag',
+  it('should be able to return common attributes of an unknown tag',
      () => { contains('app/parsing-cases.ts', 'unknown-element', 'id', 'dir', 'lang'); });
 
   it('should be able to get the completions at the beginning of an interpolation',
      () => { contains('app/app.component.ts', 'h2-hero', 'hero', 'title'); });
 
-  it('should not include private members of the of a class',
+  it('should not include private members of a class',
      () => { contains('app/app.component.ts', 'h2-hero', '-internal'); });
 
   it('should be able to get the completions at the end of an interpolation',
      () => { contains('app/app.component.ts', 'sub-end', 'hero', 'title'); });
 
-  it('should be able to get the completions in a property read',
+  it('should be able to get the completions in a property',
      () => { contains('app/app.component.ts', 'h2-name', 'name', 'id'); });
 
   it('should be able to get a list of pipe values', () => {
@@ -98,7 +98,7 @@ describe('plugin', () => {
     contains('app/parsing-cases.ts', 'after-pipe', 'lowercase', 'uppercase');
   });
 
-  it('should be able get completions in an empty interpolation',
+  it('should be able to get completions in an empty interpolation',
      () => { contains('app/parsing-cases.ts', 'empty-interpolation', 'title', 'subTitle'); });
 
   describe('with attributes', () => {
@@ -204,12 +204,12 @@ describe('plugin', () => {
   function contains(fileName: string, locationMarker: string, ...names: string[]) {
     const location = getMarkerLocation(fileName, locationMarker);
     expectEntries(
-        locationMarker, plugin.getCompletionsAtPosition(fileName, location, undefined), ...names);
+        locationMarker, plugin.getCompletionsAtPosition(fileName, location, undefined) !, ...names);
   }
 
   function expectEmpty(fileName: string, locationMarker: string) {
     const location = getMarkerLocation(fileName, locationMarker);
-    expect(plugin.getCompletionsAtPosition(fileName, location, undefined).entries || []).toEqual([
+    expect(plugin.getCompletionsAtPosition(fileName, location, undefined) !.entries || []).toEqual([
     ]);
   }
 

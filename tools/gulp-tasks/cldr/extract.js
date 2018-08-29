@@ -54,33 +54,36 @@ module.exports = (gulp, done) => {
   if (!fs.existsSync(RELATIVE_I18N_DATA_EXTRA_FOLDER)) {
     fs.mkdirSync(RELATIVE_I18N_DATA_EXTRA_FOLDER);
   }
+
+  console.log(`Writing file ${I18N_FOLDER}/currencies.ts`);
+  fs.writeFileSync(`${RELATIVE_I18N_FOLDER}/currencies.ts`, generateCurrenciesFile());
+
+  const baseCurrencies = generateBaseCurrencies(new cldrJs('en'));
+  // additional "en" file that will be included in common
+  console.log(`Writing file ${I18N_FOLDER}/locale_en.ts`);
+  const localeEnFile = generateLocale('en', new cldrJs('en'), baseCurrencies);
+  fs.writeFileSync(`${RELATIVE_I18N_FOLDER}/locale_en.ts`, localeEnFile);
+
   LOCALES.forEach((locale, index) => {
     const localeData = new cldrJs(locale);
 
     console.log(`${index + 1}/${LOCALES.length}`);
     console.log(`\t${I18N_DATA_FOLDER}/${locale}.ts`);
-    fs.writeFileSync(`${RELATIVE_I18N_DATA_FOLDER}/${locale}.ts`, generateLocale(locale, localeData));
+    fs.writeFileSync(`${RELATIVE_I18N_DATA_FOLDER}/${locale}.ts`, locale === 'en'? localeEnFile : generateLocale(locale, localeData, baseCurrencies));
     console.log(`\t${I18N_DATA_EXTRA_FOLDER}/${locale}.ts`);
     fs.writeFileSync(`${RELATIVE_I18N_DATA_EXTRA_FOLDER}/${locale}.ts`, generateLocaleExtra(locale, localeData));
   });
   console.log(`${LOCALES.length} locale files generated.`);
-
-  // additional "en" file that will be included in common
-  console.log(`Writing file ${I18N_FOLDER}/locale_en.ts`);
-  fs.writeFileSync(`${RELATIVE_I18N_FOLDER}/locale_en.ts`, generateLocale('en', new cldrJs('en')));
-
-  console.log(`Writing file ${I18N_FOLDER}/currencies.ts`);
-  fs.writeFileSync(`${RELATIVE_I18N_FOLDER}/currencies.ts`, generateCurrencies());
 
   console.log(`All i18n cldr files have been generated, formatting files..."`);
   const format = require('gulp-clang-format');
   const clangFormat = require('clang-format');
   return gulp
     .src([
-        `${I18N_DATA_FOLDER}/**/*.ts`,
-        `${I18N_FOLDER}/currencies.ts`,
-        `${I18N_FOLDER}/locale_en.ts`
-      ], {base: '.'})
+      `${I18N_DATA_FOLDER}/**/*.ts`,
+      `${I18N_FOLDER}/currencies.ts`,
+      `${I18N_FOLDER}/locale_en.ts`
+    ], {base: '.'})
     .pipe(format.format('file', clangFormat))
     .pipe(gulp.dest('.'));
 };
@@ -88,22 +91,25 @@ module.exports = (gulp, done) => {
 /**
  * Generate file that contains basic locale data
  */
-function generateLocale(locale, localeData) {
+function generateLocale(locale, localeData, baseCurrencies) {
   // [ localeId, dateTime, number, currency, pluralCase ]
   let data = stringify([
     locale,
     ...getDateTimeTranslations(localeData),
     ...getDateTimeSettings(localeData),
     ...getNumberSettings(localeData),
-    ...getCurrencySettings(locale, localeData)
-  ])
-    // We remove "undefined" added by spreading arrays when there is no value
-    .replace(/undefined/g, '');
+    ...getCurrencySettings(locale, localeData),
+    generateLocaleCurrencies(localeData, baseCurrencies)
+  ], true)
+  // We remove "undefined" added by spreading arrays when there is no value
+    .replace(/undefined/g, 'u');
 
   // adding plural function after, because we don't want it as a string
   data = data.substring(0, data.lastIndexOf(']')) + `, plural]`;
 
   return `${HEADER}
+const u = undefined;
+
 ${getPluralFunction(locale)}
 
 export default ${data};
@@ -144,16 +150,20 @@ function generateLocaleExtra(locale, localeData) {
   }
 
   return `${HEADER}
-export default ${stringify(dayPeriodsSupplemental).replace(/undefined/g, '')};
+const u = undefined;
+
+export default ${stringify(dayPeriodsSupplemental).replace(/undefined/g, 'u')};
 `;
 }
 
 /**
- * Generate a file that contains the list of currencies and their symbols
+ * Generate a list of currencies to be used as a based for other currencies
+ * e.g.: {'ARS': [, '$'], 'AUD': ['A$', '$'], ...}
  */
-function generateCurrencies() {
-  const currenciesData = new cldrJs('en').main('numbers/currencies');
-  const currencies = [];
+function generateBaseCurrencies(localeData, addDigits) {
+  const currenciesData = localeData.main('numbers/currencies');
+  const fractions = new cldrJs('en').get(`supplemental/currencyData/fractions`);
+  const currencies = {};
   Object.keys(currenciesData).forEach(key => {
     let symbolsArray = [];
     const symbol = currenciesData[key].symbol;
@@ -165,18 +175,66 @@ function generateCurrencies() {
       if (symbolsArray.length > 0) {
         symbolsArray.push(symbolNarrow);
       } else {
-        symbolsArray = [, symbolNarrow];
+        symbolsArray = [undefined, symbolNarrow];
+      }
+    }
+    if (addDigits && fractions[key] && fractions[key]['_digits']) {
+      const digits = parseInt(fractions[key]['_digits'], 10);
+      if (symbolsArray.length === 2) {
+        symbolsArray.push(digits);
+      } else if (symbolsArray.length === 1) {
+        symbolsArray = [...symbolsArray, undefined, digits];
+      } else {
+        symbolsArray = [undefined, undefined, digits];
       }
     }
     if (symbolsArray.length > 0) {
-      currencies.push(`  '${key}': ${stringify(symbolsArray)},\n`);
+      currencies[key] = symbolsArray;
     }
   });
+  return currencies;
+}
+
+/**
+ * To minimize the file even more, we only output the differences compared to the base currency
+ */
+function generateLocaleCurrencies(localeData, baseCurrencies) {
+  const currenciesData = localeData.main('numbers/currencies');
+  const currencies = {};
+  Object.keys(currenciesData).forEach(code => {
+    let symbolsArray = [];
+    const symbol = currenciesData[code].symbol;
+    const symbolNarrow = currenciesData[code]['symbol-alt-narrow'];
+    if (symbol && symbol !== code) {
+      symbolsArray.push(symbol);
+    }
+    if (symbolNarrow && symbolNarrow !== symbol) {
+      if (symbolsArray.length > 0) {
+        symbolsArray.push(symbolNarrow);
+      } else {
+        symbolsArray = [undefined, symbolNarrow];
+      }
+    }
+
+    // if locale data are different, set the value
+    if ((baseCurrencies[code] || []).toString() !== symbolsArray.toString()) {
+      currencies[code] = symbolsArray;
+    }
+  });
+  return currencies;
+}
+
+/**
+ * Generate a file that contains the list of currencies and their symbols
+ */
+function generateCurrenciesFile() {
+  const baseCurrencies = generateBaseCurrencies(new cldrJs('en'), true);
 
   return `${HEADER}
+export type CurrenciesSymbols = [string] | [string | undefined, string];
+
 /** @internal */
-export const CURRENCIES: {[code: string]: (string | undefined)[]} = {
-${currencies.join('')}};
+export const CURRENCIES_EN: {[code: string]: CurrenciesSymbols | [string | undefined, string | undefined, number]} = ${stringify(baseCurrencies, true)};
 `;
 }
 
@@ -386,7 +444,7 @@ function getNumberSettings(localeData) {
     symbols.timeSeparator,
   ];
 
-  if (symbols.currencyDecimal) {
+  if (symbols.currencyDecimal || symbols.currencyGroup) {
     symbolValues.push(symbols.currencyDecimal);
   }
 
@@ -428,7 +486,7 @@ function getCurrencySettings(locale, localeData) {
     }
   }
 
-  let currencySettings = [,];
+  let currencySettings = [undefined, undefined];
 
   if (currentCurrency) {
     currencySettings = [currencyInfo[currentCurrency].symbol, currencyInfo[currentCurrency].displayName];
@@ -495,10 +553,9 @@ function objectValues(obj) {
  * similar data in arrays to mark the delimitation between values that have different meanings
  * (e.g. months and days).
  *
- * For further size improvements, "undefined" values will be replaced by empty values in the arrays
+ * For further size improvements, "undefined" values will be replaced by a constant in the arrays
  * as the last step of the file generation (in generateLocale and generateLocaleExtra).
- * e.g.: [x, y, undefined, z, undefined, undefined] will be [x, y, , z, , ]
- * This is possible because empty values are considered undefined in arrays.
+ * e.g.: [x, y, undefined, z, undefined, undefined] will be [x, y, u, z, u, u]
  */
 function removeDuplicates(data) {
   const dedup = [data[0]];

@@ -6,79 +6,163 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent} from './component';
-import {NgOnChangesFeature, PublicFeature, defineComponent, defineDirective} from './definition';
-import {ComponentDef, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveType} from './interfaces/definition';
+import {LifecycleHooksFeature, getHostElement, getRenderedText, renderComponent, whenRendered} from './component';
+import {defineBase, defineComponent, defineDirective, defineNgModule, definePipe} from './definition';
+import {InheritDefinitionFeature} from './features/inherit_definition_feature';
+import {NgOnChangesFeature} from './features/ng_onchanges_feature';
+import {PublicFeature} from './features/public_feature';
+import {BaseDef, ComponentDef, ComponentDefInternal, ComponentTemplate, ComponentType, DirectiveDef, DirectiveDefFlags, DirectiveDefInternal, DirectiveType, PipeDef} from './interfaces/definition';
 
-// Naming scheme:
-// - Capital letters are for creating things: T(Text), E(Element), D(Directive), V(View),
-// C(Container), L(Listener)
-// - lower case letters are for binding: b(bind)
-// - lower case letters are for binding target: p(property), a(attribute), k(class), s(style),
-// i(input)
-// - lower case letters for guarding life cycle hooks: l(lifeCycle)
-// - lower case for closing: c(containerEnd), e(elementEnd), v(viewEnd)
+export {ComponentFactory, ComponentFactoryResolver, ComponentRef, WRAP_RENDERER_FACTORY2} from './component_ref';
+export {QUERY_READ_CONTAINER_REF, QUERY_READ_ELEMENT_REF, QUERY_READ_FROM_NODE, QUERY_READ_TEMPLATE_REF, directiveInject, getFactoryOf, getInheritedFactory, injectAttribute, injectChangeDetectorRef, injectComponentFactoryResolver, injectElementRef, injectTemplateRef, injectViewContainerRef, templateRefExtractor} from './di';
+export {RenderFlags} from './interfaces/definition';
+export {CssSelectorList} from './interfaces/projection';
+
 // clang-format off
 export {
-  inject, injectElementRef, injectTemplateRef, injectViewContainerRef,
 
-  LifecycleHook,
+  NO_CHANGE,
 
-  NO_CHANGE as NC,
+  bind,
+  interpolation1,
+  interpolation2,
+  interpolation3,
+  interpolation4,
+  interpolation5,
+  interpolation6,
+  interpolation7,
+  interpolation8,
+  interpolationV,
 
-  bind as b,
-  bind1 as b1,
-  bind2 as b2,
-  bind3 as b3,
-  bind4 as b4,
-  bind5 as b5,
-  bind6 as b6,
-  bind7 as b7,
-  bind8 as b8,
-  bindV as bV,
+  container,
+  containerRefreshStart,
+  containerRefreshEnd,
 
-  componentRefresh as r,
+  nextContext,
 
-  container as C,
-  containerRefreshStart as cR,
-  containerRefreshEnd as cr,
+  element,
+  elementAttribute,
+  elementClassProp,
+  elementEnd,
+  elementProperty,
+  elementStart,
 
-  elementAttribute as a,
-  elementClass as k,
-  elementEnd as e,
-  elementProperty as p,
-  elementStart as E,
-  elementStyle as s,
+  elementContainerStart,
+  elementContainerEnd,
 
-  lifecycle as l,
-  listener as L,
-  memory as m,
+  elementStyling,
+  elementStylingMap,
+  elementStyleProp,
+  elementStylingApply,
 
-  projection as P,
-  projectionDef as pD,
+  getCurrentView,
+  restoreView,
 
-  query as Q,
-  queryRefresh as qR,
+  listener,
+  store,
+  load,
+  loadDirective,
 
-  text as T,
-  textBinding as t,
+  namespaceHTML,
+  namespaceMathML,
+  namespaceSVG,
 
-  viewStart as V,
-  viewEnd as v,
+  projection,
+  projectionDef,
+
+  text,
+  textBinding,
+  template,
+
+  reference,
+
+  embeddedViewStart,
+  embeddedViewEnd,
+  detectChanges,
+  markDirty,
+  tick,
 } from './instructions';
-// clang-format on
-export {QueryList} from './query';
+
 export {
+  i18nApply,
+  i18nMapping,
+  i18nInterpolation1,
+  i18nInterpolation2,
+  i18nInterpolation3,
+  i18nInterpolation4,
+  i18nInterpolation5,
+  i18nInterpolation6,
+  i18nInterpolation7,
+  i18nInterpolation8,
+  i18nInterpolationV,
+  i18nExpMapping,
+  I18nInstruction,
+  I18nExpInstruction
+} from './i18n';
+
+export {NgModuleFactory, NgModuleRef, NgModuleType} from './ng_module_ref';
+
+export {
+    AttributeMarker
+} from './interfaces/node';
+
+export {
+  pipe,
+  pipeBind1,
+  pipeBind2,
+  pipeBind3,
+  pipeBind4,
+  pipeBindV,
+} from './pipe';
+
+export {
+  QueryList,
+  query,
+  queryRefresh,
+} from './query';
+export  {
+  registerContentQuery,
+  loadQueryList,
+} from './instructions';
+
+export {
+  pureFunction0,
+  pureFunction1,
+  pureFunction2,
+  pureFunction3,
+  pureFunction4,
+  pureFunction5,
+  pureFunction6,
+  pureFunction7,
+  pureFunction8,
+  pureFunctionV,
+} from './pure_function';
+
+
+// clang-format on
+
+export {
+  BaseDef,
   ComponentDef,
+  ComponentDefInternal,
   ComponentTemplate,
   ComponentType,
   DirectiveDef,
   DirectiveDefFlags,
+  DirectiveDefInternal,
   DirectiveType,
   NgOnChangesFeature,
+  InheritDefinitionFeature,
   PublicFeature,
+  PipeDef,
+  LifecycleHooksFeature,
   defineComponent,
   defineDirective,
+  defineNgModule,
+  defineBase,
+  definePipe,
+  getHostElement,
+  getRenderedText,
+  renderComponent,
+  whenRendered,
 };
-export {createComponentRef, detectChanges, getHostElement, markDirty, renderComponent};
-export {InjectFlags} from './di';

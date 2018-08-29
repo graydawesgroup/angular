@@ -161,10 +161,16 @@ class _TsEmitterVisitor extends AbstractEmitterVisitor implements o.TypeVisitor 
     }
     ctx.print(stmt, ` ${stmt.name}`);
     this._printColonType(stmt.type, ctx);
-    ctx.print(stmt, ` = `);
-    stmt.value.visitExpression(this, ctx);
+    if (stmt.value) {
+      ctx.print(stmt, ` = `);
+      stmt.value.visitExpression(this, ctx);
+    }
     ctx.println(stmt, `;`);
     return null;
+  }
+
+  visitWrappedNodeExpr(ast: o.WrappedNodeExpr<any>, ctx: EmitterVisitorContext): never {
+    throw new Error('Cannot visit a WrappedNodeExpr when outputting Typescript.');
   }
 
   visitCastExpr(ast: o.CastExpr, ctx: EmitterVisitorContext): any {
@@ -269,15 +275,23 @@ class _TsEmitterVisitor extends AbstractEmitterVisitor implements o.TypeVisitor 
   }
 
   visitFunctionExpr(ast: o.FunctionExpr, ctx: EmitterVisitorContext): any {
+    if (ast.name) {
+      ctx.print(ast, 'function ');
+      ctx.print(ast, ast.name);
+    }
     ctx.print(ast, `(`);
     this._visitParams(ast.params, ctx);
     ctx.print(ast, `)`);
     this._printColonType(ast.type, ctx, 'void');
-    ctx.println(ast, ` => {`);
+    if (!ast.name) {
+      ctx.print(ast, ` => `);
+    }
+    ctx.println(ast, '{');
     ctx.incIndent();
     this.visitAllStatements(ast.statements, ctx);
     ctx.decIndent();
     ctx.print(ast, `}`);
+
     return null;
   }
 
@@ -314,7 +328,7 @@ class _TsEmitterVisitor extends AbstractEmitterVisitor implements o.TypeVisitor 
     return null;
   }
 
-  visitBuiltintType(type: o.BuiltinType, ctx: EmitterVisitorContext): any {
+  visitBuiltinType(type: o.BuiltinType, ctx: EmitterVisitorContext): any {
     let typeStr: string;
     switch (type.name) {
       case o.BuiltinTypeName.Bool:
@@ -335,6 +349,9 @@ class _TsEmitterVisitor extends AbstractEmitterVisitor implements o.TypeVisitor 
       case o.BuiltinTypeName.String:
         typeStr = 'string';
         break;
+      case o.BuiltinTypeName.None:
+        typeStr = 'never';
+        break;
       default:
         throw new Error(`Unsupported builtin type ${type.name}`);
     }
@@ -344,6 +361,11 @@ class _TsEmitterVisitor extends AbstractEmitterVisitor implements o.TypeVisitor 
 
   visitExpressionType(ast: o.ExpressionType, ctx: EmitterVisitorContext): any {
     ast.value.visitExpression(this, ctx);
+    if (ast.typeParams !== null) {
+      ctx.print(null, '<');
+      this.visitAllObjects(type => this.visitType(type, ctx), ast.typeParams, ctx, ',');
+      ctx.print(null, '>');
+    }
     return null;
   }
 

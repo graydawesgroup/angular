@@ -7,7 +7,7 @@
  */
 
 import {Reflector} from '@angular/core/src/reflection/reflection';
-import {DELEGATE_CTOR, ReflectionCapabilities} from '@angular/core/src/reflection/reflection_capabilities';
+import {DELEGATE_CTOR, INHERITED_CLASS, INHERITED_CLASS_WITH_CTOR, ReflectionCapabilities} from '@angular/core/src/reflection/reflection_capabilities';
 import {global} from '@angular/core/src/util';
 import {makeDecorator, makeParamDecorator, makePropDecorator} from '@angular/core/src/util/decorators';
 
@@ -181,6 +181,48 @@ class TestObj {
         expect(DELEGATE_CTOR.exec(ChildNoCtorPrivateProps.toString())).toBeTruthy();
         expect(DELEGATE_CTOR.exec(ChildWithCtor.toString())).toBeFalsy();
       });
+
+      it('should not throw when no prototype on type', () => {
+        // Cannot test arrow function here due to the compilation
+        const dummyArrowFn = function() {};
+        Object.defineProperty(dummyArrowFn, 'prototype', {value: undefined});
+        expect(() => reflector.annotations(dummyArrowFn as any)).not.toThrow();
+      });
+
+      it('should support native class', () => {
+        const ChildNoCtor = `class ChildNoCtor extends Parent {}\n`;
+        const ChildWithCtor = `class ChildWithCtor extends Parent {\n` +
+            `  constructor() { super(); }` +
+            `}\n`;
+        const ChildNoCtorPrivateProps = `class ChildNoCtorPrivateProps extends Parent {\n` +
+            `  private x = 10;\n` +
+            `}\n`;
+
+        const checkNoOwnMetadata = (str: string) =>
+            INHERITED_CLASS.exec(str) && !INHERITED_CLASS_WITH_CTOR.exec(str);
+
+        expect(checkNoOwnMetadata(ChildNoCtor)).toBeTruthy();
+        expect(checkNoOwnMetadata(ChildNoCtorPrivateProps)).toBeTruthy();
+        expect(checkNoOwnMetadata(ChildWithCtor)).toBeFalsy();
+      });
+
+      it('should properly handle all class forms', () => {
+        const ctor = (str: string) => expect(INHERITED_CLASS.exec(str)).toBeTruthy() &&
+            expect(INHERITED_CLASS_WITH_CTOR.exec(str)).toBeTruthy();
+        const noCtor = (str: string) => expect(INHERITED_CLASS.exec(str)).toBeTruthy() &&
+            expect(INHERITED_CLASS_WITH_CTOR.exec(str)).toBeFalsy();
+
+        ctor(`class Bar extends Foo {constructor(){}}`);
+        ctor(`class Bar extends Foo { constructor ( ) {} }`);
+        ctor(`class Bar extends Foo { other(){}; constructor(){} }`);
+
+        noCtor(`class extends Foo{}`);
+        noCtor(`class extends Foo {}`);
+        noCtor(`class Bar extends Foo {}`);
+        noCtor(`class $Bar1_ extends $Fo0_ {}`);
+        noCtor(`class Bar extends Foo { other(){} }`);
+      });
+
     });
 
     describe('inheritance with decorators', () => {
@@ -273,7 +315,7 @@ class TestObj {
         // But we should still get an array of the right length based on function.length.
         expect(reflector.parameters(ChildWithCtorNoDecorator)).toEqual([
           undefined, undefined, undefined
-        ]);
+        ] as any[]);  // TODO: Review use of `any` here (#19904)
 
         expect(reflector.parameters(NoDecorators)).toEqual([]);
         expect(reflector.parameters(<any>{})).toEqual([]);
@@ -287,17 +329,21 @@ class TestObj {
         class C {}
 
         class Parent {
+          // TODO(issue/24571): remove '!'.
           @PropDecorator('a')
-          a: A;
+          a !: A;
+          // TODO(issue/24571): remove '!'.
           @PropDecorator('b1')
-          b: B;
+          b !: B;
         }
 
         class Child extends Parent {
+          // TODO(issue/24571): remove '!'.
           @PropDecorator('b2')
-          b: B;
+          b !: B;
+          // TODO(issue/24571): remove '!'.
           @PropDecorator('c')
-          c: C;
+          c !: C;
         }
 
         class NoDecorators {}

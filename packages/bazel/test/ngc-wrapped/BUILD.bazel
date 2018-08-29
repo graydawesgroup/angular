@@ -10,12 +10,8 @@ ts_library(
     ],
     tsconfig = ":tsconfig.json",
     deps = [
-        # BEGIN-INTERNAL
-        # Only needed when compiling within the Angular repo.
-        # Users will get this dependency from node_modules.
-        "//packages/compiler-cli",
-        # END-INTERNAL
         "//packages/bazel/src/ngc-wrapped:ngc_lib",
+        "//packages/compiler-cli",
     ],
 )
 
@@ -34,6 +30,6 @@ jasmine_node_test(
         ":angular_core",
         "//packages/bazel/test/ngc-wrapped/empty:empty_tsconfig.json",
         "//packages/bazel/test/ngc-wrapped/empty:tsconfig.json",
-        "@build_bazel_rules_typescript//internal:worker_protocol.proto",
+        "@build_bazel_rules_typescript//third_party/github.com/bazelbuild/bazel/src/main/protobuf:worker_protocol.proto",
     ],
 )
